@@ -1,5 +1,9 @@
+import { precacheAndRoute } from "workbox-precaching";
+
 const COOP_HEADER = "same-origin";
 const COEP_HEADER = "require-corp";
+
+precacheAndRoute(self.__WB_MANIFEST);
 
 self.addEventListener("install", () => {
   self.skipWaiting();
