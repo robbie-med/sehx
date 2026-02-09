@@ -1,0 +1,374 @@
+SPEC INDEX (Authoritative)
+
+These are the canonical spec documents we are generating in this phase:
+
+System Architecture
+
+Data Model & Storage
+
+Event Taxonomy
+
+Capture & Processing Pipeline
+
+Inference Engines
+
+Timeline Construction
+
+Scoring System
+
+Privacy & Data Handling Model
+
+PWA Constraints & Failure Modes
+
+Versioning & Determinism Rules
+
+1) System Architecture
+High-level architecture (PWA v1)
+[UI Layer]
+   ↓ subscribes to
+[Session Runtime Bus]
+   ↓ emits / consumes
+[Capture Layer] → [DSP] → [ASR] → [Inference]
+                                      ↓
+                               [Event Log]
+                                      ↓
+                               [Metrics Engine]
+                                      ↓
+                               [Timeline Builder]
+                                      ↓
+                               [Local Storage]
+
+Architectural principles
+
+Event-sourced: everything derives from timestamped events
+
+On-device only: no network dependency
+
+Ephemeral speech: audio + transcript exist only in RAM
+
+Deterministic: metrics must recompute identically
+
+Composable: inference engines are pluggable modules
+
+2) Data Model & Storage
+Storage technology
+
+IndexedDB
+
+Schema-versioned
+
+No blobs for audio or text
+
+Core entities
+Session
+session_id (UUID)
+created_at
+ended_at
+engine_version
+settings_snapshot
+
+Event (immutable)
+event_id (UUID)
+session_id
+t_seconds (float, relative to session start)
+type (enum)
+source (audio | speech | motion | inference | user)
+confidence (0–1)
+payload (typed, minimal)
+
+Signal (downsampled)
+session_id
+t_seconds
+signal_type (intensity | rhythm | silence | pitch_proxy)
+value (float)
+
+Metrics (derived, reproducible)
+session_id
+metric_key
+metric_value
+computed_with_engine_version
+
+
+Forbidden to store
+
+Raw audio
+
+Encoded audio
+
+Speech transcripts
+
+Speaker identifiers
+
+3) Event Taxonomy (v1)
+Session lifecycle
+
+SESSION_START
+
+SESSION_END
+
+SESSION_PAUSE
+
+SESSION_RESUME
+
+Phase markers
+
+PHASE_START_FOREPLAY
+
+PHASE_END_FOREPLAY
+
+PHASE_START_INTERCOURSE
+
+PHASE_START_COOLDOWN
+
+Speech-derived events
+
+STOP
+
+GO
+
+POSITIVE_FEEDBACK
+
+NEGATIVE_FEEDBACK
+
+POSITION_CHANGE_REQUEST
+
+PACE_CHANGE_REQUEST
+
+Inference-derived events
+
+POSITION_CHANGE
+
+RHYTHM_START
+
+RHYTHM_STOP
+
+ORGASM_EVENT
+
+Rules
+
+Events are actorless
+
+No event references another event
+
+Events never change after creation
+
+4) Capture & Processing Pipeline
+Audio capture
+
+Web Audio API
+
+PCM Float32
+
+Sample rate normalized (e.g., 16kHz)
+
+Rolling buffer
+
+10-second ring buffer
+
+Memory-only
+
+Overwrite continuously
+
+No rewind
+
+Trigger conditions for ASR
+
+RMS threshold crossing
+
+Silence → speech transition
+
+Max interval timer (e.g., every 3s during speech)
+
+5) ASR (Whisper) Specification
+Model
+
+Whisper tiny.en or base.en, quantized
+
+Loaded locally from app assets
+
+Windowing
+
+Window size: 10s
+
+Step: 2–3s
+
+Overlap required
+
+Transcript lifecycle
+
+Generated in RAM
+
+Passed to semantic parser
+
+Destroyed immediately
+
+Output
+
+Zero or more semantic events
+
+No persisted text
+
+6) Inference Engines
+
+All inference engines:
+
+Are deterministic
+
+Operate on signals + recent event history
+
+Emit new events only
+
+Phase inference
+
+Based on:
+
+Activity density
+
+Rhythm presence
+
+Position changes
+
+Foreplay ends at sustained rhythm onset
+
+Rhythm inference
+
+Band-pass filtered intensity envelope
+
+Autocorrelation / periodicity detection
+
+Emits start/stop events
+
+Position change inference
+
+Triggered by:
+
+Explicit speech request OR
+
+Rhythm stop + new rhythm signature
+
+Orgasm inference
+
+Triggered by:
+
+Intensity spike
+
+Irregular vocalization pattern
+
+Sudden rhythm collapse
+
+Silence window
+
+Emits confidence-weighted event
+
+7) Timeline Construction
+Timeline is a render model, not raw data
+
+Tracks:
+
+Session state
+
+Phases
+
+Position segments
+
+Speech events
+
+Orgasm events
+
+Audio intensity
+
+Rhythm density
+
+Silence windows
+
+Timeline builder:
+
+Takes events + signals
+
+Produces render primitives
+
+Supports zoom & inspection
+
+8) Metrics & Scoring
+Metrics classes
+
+Counts (STOP count, position count)
+
+Durations (foreplay time)
+
+Latencies (STOP → activity)
+
+Densities (events/min)
+
+Continuity (rhythm stability)
+
+Score
+
+Composite index (0–100)
+
+Weighted sum of components
+
+Fully decomposable
+
+No adjectives, no labels
+
+9) Privacy & Data Handling (Hard Constraints)
+
+No audio persistence (ever)
+
+No transcript persistence (ever)
+
+No remote analytics
+
+No identifiers
+
+Delete = irreversible
+
+Export = explicit, user-initiated
+
+Failure to meet any of these is a blocking defect.
+
+10) PWA Constraints & Failure Modes
+Required conditions
+
+App foregrounded
+
+Screen on
+
+Sufficient battery
+
+Failure handling
+
+OS suspension → emit SESSION_END
+
+Mic permission revoked → stop capture
+
+Crash → recover without corrupting DB
+
+11) Versioning & Determinism
+
+Every session stores:
+
+Inference engine version
+
+ASR model version
+
+Recompute metrics only:
+
+On explicit user action
+
+Scores must be reproducible given same inputs
+
+SPEC SIGN-OFF CHECKLIST
+
+To proceed, confirm:
+
+Event-sourced architecture is acceptable
+
+Whisper-only ASR (no fallback)
+
+No analytics, no telemetry
+
+No UI interpretation language
+
+Determinism > ML cleverness

@@ -1,0 +1,779 @@
+Below is a software-architect level project design for a PWA-first, offline-first, on-device processing app with a clean path to native later. This is structured so you can start implementing immediately.
+
+1. Architecture Goals
+Non-negotiables
+
+Offline-first: works with airplane mode on
+
+On-device processing: no audio/transcript persistence
+
+Inspectable metrics: every number traces to events + timestamps
+
+Modular inference: swap ASR/inference engines later
+
+Upgradeable to native: no rewrite, only better capabilities
+
+Constraints (PWA reality)
+
+Foreground-only sessions (screen on)
+
+iOS Safari limitations (memory, background throttling)
+
+Permissions must be contextual and explicit
+
+2. Top-Level System Components
+A. UI Layer (Presentation)
+
+Onboarding swipe flow
+
+Session controls
+
+Timeline renderer
+
+Dashboards & trends
+
+Settings (speech toggle, privacy controls)
+
+Session review + delete + export
+
+B. Capture Layer (Sensors)
+
+Microphone capture (Web Audio API)
+
+Optional motion capture (DeviceMotion events)
+
+“Session state” manager (foreground timers)
+
+C. Processing Layer (Streaming, ephemeral)
+
+Audio feature extraction (RMS, FFT, pitch proxy, silence windows)
+
+Rolling buffer (RAM only)
+
+ASR engine adapter (pluggable)
+
+Semantic parser (transcript → event tags)
+
+Event emitter (canonical event log)
+
+D. Inference Layer (Rules v1, ML later)
+
+Phase inference (foreplay/intercourse/cooldown)
+
+Rhythm cycle detection
+
+Position-change detection (speech + audio pattern shifts)
+
+Orgasm-event detection (confidence-weighted)
+
+Latency computations (STOP → next activity)
+
+E. Storage Layer (Local, encrypted)
+
+IndexedDB (Dexie.js recommended)
+
+Web Crypto wrapper for encryption-at-rest
+
+Schema for sessions, events, derived metrics, user prefs
+
+F. Analytics Layer (Deterministic)
+
+Metric calculators (pure functions)
+
+Score calculator (transparent, decomposable)
+
+Trend aggregator (weekly/monthly rolling metrics)
+
+3. Repository + Packages (Monorepo)
+
+Use a monorepo so inference + data model stays identical for future native.
+
+Recommended: pnpm + Turborepo (or just pnpm workspaces)
+
+sexmetrics/
+  apps/
+    pwa/                  # UI + service worker + runtime
+  packages/
+    core/                 # domain models, event types, metric calculators
+    capture/              # microphone + motion capture utilities
+    dsp/                  # signal processing (FFT, filters, peak detection)
+    asr/                  # ASR adapters (vosk/whisper-wasm) + interfaces
+    inference/            # rule engines (phase/rhythm/orgasm/position)
+    storage/              # indexeddb + encryption + migrations
+    timeline/             # timeline layout engine + track definitions
+    testkit/              # fixtures, golden sessions, synthetic generators
+  docs/
+    spec/                 # architecture + taxonomy + scoring spec
+
+
+This structure makes “native later” trivial: swap apps/pwa with apps/native but keep packages/*.
+
+4. Domain Model (Canonical Types)
+4.1 Event Taxonomy (v1)
+
+Events are immutable, actorless, timestamped, confidence-weighted.
+
+Core enums:
+
+SESSION_START, SESSION_END, PAUSE, RESUME
+
+PHASE_START, PHASE_END (foreplay/intercourse/cooldown)
+
+POSITION_CHANGE
+
+RHYTHM_START, RHYTHM_STOP
+
+ORGASM_EVENT (confidence-based)
+
+STOP, GO, POSITIVE_FEEDBACK, NEGATIVE_FEEDBACK, PACE_CHANGE_REQUEST
+
+Event object:
+
+id
+
+sessionId
+
+t (seconds since session start, float)
+
+type
+
+source (audio|speech|motion|user|inference)
+
+confidence (0–1)
+
+payload (minimal, typed; never raw transcript)
+
+4.2 Signals
+
+Continuous streams sampled over time:
+
+audio RMS
+
+spectral centroid / band energy
+
+silence mask
+
+rhythm strength
+
+optional motion magnitude
+
+Store downsampled (e.g., 2–5 Hz) for timeline graphs.
+
+4.3 Derived Metrics
+
+Computed deterministically from events + signals.
+
+durations
+
+counts
+
+latencies
+
+densities
+
+score breakdown
+
+5. Data Storage Schema (IndexedDB)
+
+Tables (Dexie-style):
+
+sessions (metadata + settings snapshot)
+
+events (canonical event log)
+
+signals (downsampled time series)
+
+metrics (derived; cached; reproducible)
+
+models (which ASR model used; versioning)
+
+settings
+
+Key properties:
+
+All tables include createdAt, updatedAt, schemaVersion
+
+Store engineVersion for inference rules
+
+Enable “recompute metrics” after algorithm updates
+
+Encryption-at-rest:
+
+Per-user key derived from passcode or device secret (Web Crypto)
+
+Keep it optional in v1 if UX is too heavy, but design for it now
+
+6. Real-Time Pipeline (Session Runtime)
+6.1 Session runtime loop
+
+User taps Start
+
+Capture starts: mic (and optional motion)
+
+Processing loop runs in small chunks (e.g. 250ms–1s)
+
+Emit events as rules trigger
+
+Write events/signals to IndexedDB in batches (every few seconds)
+
+UI subscribes to “session bus” to render live timeline
+
+Important: Use a pub/sub “EventBus” abstraction so UI is decoupled.
+
+6.2 Speech mode (opt-in)
+
+Rolling audio buffer in memory only
+
+ASR runs on windows (e.g., 2–3 seconds)
+
+Transcript exists in RAM only
+
+Semantic parser emits one or more events
+
+Transcript and audio window are discarded
+
+No transcript table. Ever.
+
+7. Pluggable ASR Interface
+
+Define an ASR adapter interface so you can swap engines without changing product logic.
+
+Interface:
+
+init(modelRef)
+
+transcribe(audioFloat32, sampleRate) -> { tokens?, text?, confidence }
+
+dispose()
+
+Adapters:
+
+vosk-wasm (keyword/command focus)
+
+whisper-wasm (higher accuracy, heavier)
+
+later: native OS speech APIs (in native wrapper)
+
+MVP strategy:
+
+Use Vosk for keyword/event detection
+
+Optional upgrade path to whisper-tiny quantized
+
+8. Inference Engines (Rule-Based v1)
+
+Implement as pure functions + streaming state.
+
+8.1 Phase inference
+
+Inputs:
+
+activity/silence windows
+
+speech markers (e.g., “start”, “wait”, “switch”)
+
+rhythm presence
+
+Outputs:
+
+PHASE_START/END events
+
+8.2 Rhythm detector
+
+bandpass on audio envelope
+
+autocorrelation / peak periodicity
+
+output rhythm_strength signal
+
+emit RHYTHM_START/STOP
+
+8.3 Position change
+
+Triggered by:
+
+explicit speech event: POSITION_CHANGE_REQUEST
+
+pause + rhythm shift
+
+motion orientation change (optional)
+
+Output:
+
+POSITION_CHANGE
+
+8.4 Orgasm event (confidence)
+
+Triggered by:
+
+intensity spike + irregularity + decay + silence window
+
+vocal signature shift (pitch/variance change)
+
+(future: user tap confirm)
+
+Output:
+
+ORGASM_EVENT(confidence)
+
+8.5 STOP latency metrics
+
+detect STOP event
+
+compute time until next activity/rhythm resumption
+
+store as derived metric (not interpretive)
+
+9. Timeline Engine (UI)
+
+Define tracks in a config-driven way:
+
+Tracks:
+
+Phases (segments)
+
+Positions (segments)
+
+Speech events (markers)
+
+Orgasm events (markers)
+
+Intensity (line)
+
+Rhythm strength (bar/area)
+
+Silence windows (segments)
+
+Timeline engine responsibilities:
+
+Convert sessions/events/signals into “render primitives”
+
+Handle zoom (1m, 5m, full)
+
+Handle tap-to-inspect at timestamp
+
+Support “session scrubber”
+
+10. Scoring Engine (Transparent)
+
+Implement a score as a composable pipeline:
+
+score = Σ (componentWeight * componentScore)
+
+Components:
+
+Communication density
+
+Boundary latency index
+
+Foreplay proportion index
+
+Orgasm confidence presence
+
+Rhythm continuity index
+
+Afterglow proxy index
+
+Each component must expose:
+
+raw inputs (counts, times)
+
+formula
+
+intermediate values
+
+UI must show:
+
+Total score
+
+Component breakdown
+
+“Why” view with exact numbers
+
+11. Security & Privacy (Architectural Requirements)
+
+No audio persistence
+
+No transcript persistence
+
+No cloud by default
+
+Local encryption optional but designed in
+
+Export only as encrypted archive
+
+“Delete session” is irreversible (hard delete)
+
+Onboarding explicitly states:
+
+screen-on requirement
+
+permissions
+
+offline-first
+
+inference limitations
+
+12. Testing Strategy (Critical)
+
+You need “golden sessions” so updates don’t break metrics.
+
+Testkit includes:
+
+Synthetic signal generators (intensity curves, rhythms)
+
+Simulated event streams (STOP sequences, position changes)
+
+Golden JSON sessions with expected outputs
+
+Snapshot tests for:
+
+metric totals
+
+score breakdown
+
+timeline primitives
+
+Add performance budgets:
+
+CPU use per minute
+
+memory ceiling
+
+battery drain target (rough)
+
+13. Build Plan (First Buildable Milestones)
+Milestone 1 — UI Skeleton + Fake Data
+
+Onboarding screens
+
+Session list
+
+Timeline renderer using mocked sessions
+
+Metrics + score panels using mocked metrics
+
+Milestone 2 — Real Capture (No ASR yet)
+
+Mic capture
+
+Intensity graph
+
+Silence detection
+
+Store signals + session lifecycle
+
+Milestone 3 — Event Engine v1
+
+Rhythm detector
+
+Position change inference (pause-based)
+
+Basic phase inference
+
+Show events on timeline
+
+Milestone 4 — ASR + Semantic Events
+
+Add Vosk adapter
+
+Detect STOP/GO/POS/NEG/CHANGE
+
+Emit speech events onto timeline
+
+Compute STOP latencies
+
+Milestone 5 — Polish + Stability
+
+Delete/export
+
+Settings
+
+iOS/Android compatibility pass
+
+Battery tuning
+
+14. Tech Choices (Concrete)
+
+UI: React + Vite + TypeScript
+
+State: Zustand (simple) or Redux Toolkit (if you prefer strictness)
+
+DB: Dexie.js + migrations
+
+Charts: lightweight custom canvas for timeline (best) or d3
+
+DSP: custom TS + small FFT lib
+
+PWA: Workbox service worker
+
+Monorepo: pnpm workspaces
+
+#clarify
+1. If you’re going with Whisper, you do NOT need a “dictionary of sexy words”
+
+This is one of the main reasons Whisper is the right call for this product.
+
+Why Whisper changes the equation
+
+Whisper is open-vocabulary
+
+It does not rely on a fixed grammar or keyword list
+
+It handles:
+
+Natural phrasing
+
+Slang
+
+Hesitation
+
+Repetition
+
+Partial sentences
+
+Emotional speech
+
+So:
+
+❌ No curated lexicon
+
+❌ No domain-specific dictionary maintenance
+
+❌ No constant retraining for new phrases
+
+You let semantic parsing happen after transcription, not inside the ASR.
+
+2. When WOULD you need a dictionary? (Vosk context)
+
+If you were using Vosk, then yes:
+
+You’d typically want a constrained vocabulary
+
+Especially for reliable detection of STOP / GO / CHANGE commands
+
+Otherwise recognition quality degrades fast in noisy conditions
+
+That’s why earlier we talked about Vosk being “keyword-first.”
+
+But since you’ve decided on Whisper:
+
+Skip the dictionary entirely
+
+Spend your effort on event classification rules
+
+Correct move.
+
+3. 10-second rolling audio buffer — yes, but with discipline
+
+Your instinct here is right, with one important caveat.
+
+Why 10 seconds is good
+
+Captures context
+
+Handles:
+
+“Wait—no—okay—keep going”
+
+Hesitant or emotional speech
+
+Overlapping vocalizations
+
+Improves Whisper accuracy substantially vs 2–3s chunks
+
+This is especially important for:
+
+STOP vs playful “stop”
+
+Multi-word preference statements
+
+Corrections (“No, not like that”)
+
+4. The correct way to implement a 10-second buffer
+❌ What NOT to do
+
+Transcribe the same 10 seconds repeatedly
+
+Accumulate transcripts
+
+Allow rewind or replay
+
+Persist text even briefly in storage
+
+✅ Correct pattern (sliding window with hard expiry)
+
+Memory-only ring buffer:
+
+Holds last 10 seconds of raw PCM
+
+Overwrites continuously
+
+Trigger-based transcription:
+
+Only invoke Whisper when:
+
+Audio crosses intensity threshold OR
+
+Silence → speech transition OR
+
+Every N seconds during active speech
+
+Transcript lifetime:
+
+Exists in RAM
+
+Parsed immediately
+
+Destroyed immediately after event extraction
+
+No transcript survives past one inference pass.
+
+5. Whisper chunking strategy (recommended)
+
+Do overlapping windows, not fixed slices.
+
+Example:
+
+Window size: 10s
+
+Step size: 2–3s
+
+Overlap: 7–8s
+
+This gives you:
+
+Context continuity
+
+Reduced word truncation
+
+Better boundary detection
+
+Your semantic parser then:
+
+De-duplicates overlapping text
+
+Anchors events by timestamp confidence
+
+6. How semantic parsing replaces a dictionary
+
+Instead of a word list, you define intent classes.
+
+Example (conceptual):
+
+STOP intent:
+
+“stop”
+
+“wait”
+
+“no”
+
+“hold on”
+
+“not that”
+
+POSITIVE intent:
+
+“I like that”
+
+“yes”
+
+“that feels good”
+
+CHANGE intent:
+
+“switch”
+
+“let’s try”
+
+“turn around”
+
+“different position”
+
+But:
+
+These are patterns, not hard-coded vocab
+
+Implemented as:
+
+phrase similarity
+
+confidence-weighted rules
+
+context checks (tone + timing)
+
+Whisper gives you language.
+Your app gives it meaning.
+
+7. Timestamp accuracy with Whisper (important detail)
+
+Whisper timestamps are:
+
+Token-level (approximate)
+
+Good enough for seconds-scale latency
+
+Not millisecond-accurate
+
+This is fine for:
+
+STOP latency
+
+Phase transitions
+
+Position change timing
+
+For precise alignment:
+
+Use audio signal time as the primary clock
+
+Map Whisper tokens to nearest audio frame
+
+8. Performance reality check (PWA + Whisper)
+
+With a 10s window:
+
+Use tiny or base.en, quantized
+
+Expect:
+
+Bursty CPU usage
+
+~1–2s latency per transcription pass on modern phones
+
+This is acceptable for:
+
+Post-hoc event emission
+
+Timeline accuracy
+
+Not acceptable for:
+
+Real-time captions (which you’re not doing)
+
+You’re designing for analysis, not live subtitles. Good.
+
+9. Final architectural recommendation (lock this in)
+
+✅ Whisper (tiny or base, quantized)
+
+✅ 10s rolling buffer, memory-only
+
+✅ Overlapping windows
+
+✅ No vocabulary lists
+
+✅ Semantic event extraction layer
+
+✅ Immediate transcript destruction
+
+This gives you:
+
+Better accuracy
+
+Less maintenance
+
+Stronger privacy story
+
+Cleaner evolution path to native

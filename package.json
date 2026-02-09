@@ -1,0 +1,14 @@
+{
+  "name": "sexmetrics",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "pnpm --filter @sexmetrics/pwa dev",
+    "build": "pnpm --filter @sexmetrics/pwa build",
+    "preview": "pnpm --filter @sexmetrics/pwa preview",
+    "lint": "pnpm --filter @sexmetrics/pwa lint",
+    "test": "pnpm --filter @sexmetrics/pwa test",
+    "privacy:check": "node scripts/privacy-check.js"
+  }
+}

@@ -1,0 +1,343 @@
+A. COMPLETE FILE TREE (BUILD-READY, PWA-FIRST)
+
+This is a monorepo designed so:
+
+PWA ships first
+
+Native later is a drop-in replacement for the app shell
+
+Core logic never moves
+
+Assume:
+
+TypeScript everywhere
+
+pnpm workspaces
+
+Vite + React
+
+Whisper WASM
+
+Repository Root
+sexmetrics/
+├─ package.json
+├─ pnpm-workspace.yaml
+├─ tsconfig.base.json
+├─ .gitignore
+├─ README.md
+├─ docs/
+│  ├─ architecture.md
+│  ├─ privacy-model.md
+│  ├─ event-taxonomy.md
+│  ├─ scoring.md
+│  └─ onboarding-copy.md
+├─ apps/
+│  └─ pwa/
+├─ packages/
+│  ├─ core/
+│  ├─ capture/
+│  ├─ dsp/
+│  ├─ asr/
+│  ├─ inference/
+│  ├─ timeline/
+│  ├─ storage/
+│  ├─ analytics/
+│  └─ testkit/
+
+apps/pwa (UI + Runtime Shell)
+apps/pwa/
+├─ index.html
+├─ vite.config.ts
+├─ tsconfig.json
+├─ public/
+│  ├─ manifest.json
+│  ├─ icons/
+│  └─ models/
+│     └─ whisper-tiny.en.bin
+├─ src/
+│  ├─ main.tsx
+│  ├─ App.tsx
+│  ├─ sw.ts
+│  ├─ styles/
+│  │  ├─ globals.css
+│  │  └─ theme.css
+│  ├─ onboarding/
+│  │  ├─ SplashCarousel.tsx
+│  │  ├─ slides.ts
+│  │  └─ ConsentChecklist.tsx
+│  ├─ session/
+│  │  ├─ SessionController.tsx
+│  │  ├─ SessionStatusBar.tsx
+│  │  └─ SessionControls.tsx
+│  ├─ timeline/
+│  │  ├─ TimelineView.tsx
+│  │  ├─ TrackRenderer.tsx
+│  │  └─ EventMarkers.tsx
+│  ├─ dashboards/
+│  │  ├─ SessionSummary.tsx
+│  │  ├─ MetricsPanel.tsx
+│  │  └─ ScoreBreakdown.tsx
+│  ├─ state/
+│  │  ├─ store.ts
+│  │  ├─ sessionSlice.ts
+│  │  └─ settingsSlice.ts
+│  ├─ hooks/
+│  │  ├─ useSession.ts
+│  │  ├─ useTimeline.ts
+│  │  └─ usePermissions.ts
+│  ├─ utils/
+│  │  ├─ time.ts
+│  │  └─ formatting.ts
+│  └─ routes/
+│     ├─ Home.tsx
+│     ├─ Session.tsx
+│     └─ Settings.tsx
+
+packages/core (Domain Model – NEVER CHANGES)
+packages/core/
+├─ src/
+│  ├─ index.ts
+│  ├─ events.ts          # canonical event enums + types
+│  ├─ phases.ts
+│  ├─ signals.ts
+│  ├─ metrics.ts
+│  ├─ session.ts
+│  └─ score.ts
+├─ tsconfig.json
+└─ package.json
+
+
+This package is your single source of truth.
+
+packages/capture (Sensors)
+packages/capture/
+├─ src/
+│  ├─ microphone.ts
+│  ├─ audioBuffer.ts     # 10s rolling ring buffer (RAM only)
+│  ├─ motion.ts
+│  ├─ permissions.ts
+│  └─ sessionClock.ts
+├─ tsconfig.json
+└─ package.json
+
+
+Key rule enforced here: no persistence APIs allowed.
+
+packages/dsp (Signal Processing)
+packages/dsp/
+├─ src/
+│  ├─ fft.ts
+│  ├─ rms.ts
+│  ├─ silence.ts
+│  ├─ rhythm.ts
+│  ├─ pitch.ts
+│  └─ peakDetection.ts
+├─ tsconfig.json
+└─ package.json
+
+
+Pure functions only. No side effects.
+
+packages/asr (Whisper Integration)
+packages/asr/
+├─ src/
+│  ├─ ASRAdapter.ts      # interface
+│  ├─ whisper/
+│  │  ├─ WhisperAdapter.ts
+│  │  ├─ modelLoader.ts
+│  │  ├─ windowing.ts    # overlapping 10s windows
+│  │  └─ types.ts
+│  ├─ transcript.ts      # RAM-only helpers
+│  └─ intentParser.ts    # transcript → intent events
+├─ tsconfig.json
+└─ package.json
+
+
+This is where:
+
+Transcripts live briefly
+
+Events are emitted
+
+Text is destroyed
+
+packages/inference (Rules Engine)
+packages/inference/
+├─ src/
+│  ├─ phaseInference.ts
+│  ├─ rhythmInference.ts
+│  ├─ positionInference.ts
+│  ├─ orgasmInference.ts
+│  ├─ latencyMetrics.ts
+│  └─ inferenceEngine.ts
+├─ tsconfig.json
+└─ package.json
+
+
+Stateless + stateful hybrids, but deterministic.
+
+packages/timeline (Rendering Model)
+packages/timeline/
+├─ src/
+│  ├─ tracks.ts          # declarative track definitions
+│  ├─ layout.ts
+│  ├─ primitives.ts
+│  └─ timelineBuilder.ts
+├─ tsconfig.json
+└─ package.json
+
+
+Produces render instructions, not UI.
+
+packages/storage (IndexedDB + Crypto)
+packages/storage/
+├─ src/
+│  ├─ db.ts
+│  ├─ schema.ts
+│  ├─ migrations.ts
+│  ├─ encryption.ts
+│  ├─ sessionsRepo.ts
+│  ├─ eventsRepo.ts
+│  └─ metricsRepo.ts
+├─ tsconfig.json
+└─ package.json
+
+
+You can later replace this with SQLite in native.
+
+packages/analytics (Metrics + Trends)
+packages/analytics/
+├─ src/
+│  ├─ calculators/
+│  │  ├─ duration.ts
+│  │  ├─ counts.ts
+│  │  ├─ densities.ts
+│  │  └─ latencies.ts
+│  ├─ trends.ts
+│  ├─ scoreEngine.ts
+│  └─ explain.ts        # “why is this score X”
+├─ tsconfig.json
+└─ package.json
+
+
+Everything here is reproducible from raw events.
+
+packages/testkit (Non-Negotiable)
+packages/testkit/
+├─ src/
+│  ├─ syntheticSessions.ts
+│  ├─ signalGenerators.ts
+│  ├─ goldenSessions/
+│  │  ├─ session1.json
+│  │  └─ expectedMetrics.json
+│  ├─ assertions.ts
+│  └─ perfBench.ts
+├─ tsconfig.json
+└─ package.json
+
+
+This is how you avoid silent regressions.
+
+B. CONSULTANTS: WHO TO BRING IN (AND WHO NOT)
+
+You do not need many. But a few very specific people can dramatically de-risk this.
+
+1. Speech / Audio DSP Consultant (YES – SHORT TERM)
+
+Why
+
+Whisper WASM tuning
+
+Buffer/window overlap strategy
+
+Battery & CPU profiling
+
+iOS Safari quirks
+
+Profile
+
+Audio ML engineer
+
+Has shipped on-device ASR or DSP
+
+Not a “data scientist” generalist
+
+Engagement
+
+2–4 weeks
+
+Architecture + review, not ongoing dev
+
+2. Privacy / Consent UX Reviewer (YES – 1–2 DAYS)
+
+Why
+
+Your onboarding is a safety system
+
+Language precision matters legally and ethically
+
+Profile
+
+Digital privacy / consent specialist
+
+Experience with health or sexual wellness apps
+
+Deliverable
+
+Review splash copy
+
+Permission timing
+
+Risk wording
+
+3. Sex Research Advisor (OPTIONAL, LIGHT)
+
+Why
+
+Credibility
+
+External validation of metrics framing
+
+Not for therapy advice
+
+Profile
+
+Academic sex researcher (not influencer)
+
+Comfortable with quantified-self framing
+
+Engagement
+
+Advisory only
+
+Review docs, no code
+
+4. What You Do NOT Need (Avoid These)
+
+❌ General “AI consultants”
+❌ Relationship therapists
+❌ Big-name agencies
+❌ App-store optimization firms (too early)
+❌ Legal teams beyond a targeted privacy review (for now)
+
+They will slow you down and dilute the vision.
+
+C. STRATEGIC ADVICE (IMPORTANT)
+
+You are building:
+
+A measurement instrument
+
+In a highly sensitive domain
+
+With novel on-device ML
+
+Your leverage comes from:
+
+Clean architecture
+
+Extreme clarity of scope
+
+Relentless discipline around data handling
+
+The file tree above reflects that discipline.

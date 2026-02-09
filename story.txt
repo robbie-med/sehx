@@ -1,0 +1,486 @@
+PM Agent — Story Creation (Planning Mode)
+
+This phase converts the approved specs into buildable work units.
+No architecture changes, no re-interpretation, no “we’ll figure it out later.”
+
+Everything here must be:
+
+Small
+
+Testable
+
+Traceable to the spec
+
+Orderable by dependency
+
+STORY STRUCTURE (STANDARD)
+
+Every story below includes:
+
+ID
+
+Title
+
+Description
+
+Acceptance Criteria
+
+Dependencies
+
+Stories are grouped into Epics, which define delivery order.
+
+EPIC 0 — Project Skeleton & Guardrails (FOUNDATIONAL)
+S-001: Monorepo + PWA Skeleton
+
+Description:
+Set up the monorepo, PWA shell, and build tooling with no app logic.
+
+Acceptance Criteria
+
+pnpm workspace builds
+
+PWA loads offline
+
+No runtime errors
+
+No permissions requested
+
+Dependencies: none
+
+S-002: Core Domain Models
+
+Description:
+Implement canonical event, session, signal, and metric types in packages/core.
+
+Acceptance Criteria
+
+Event types match spec exactly
+
+Types are immutable
+
+Used by at least one consuming package
+
+Dependencies: S-001
+
+S-003: Privacy Guardrails
+
+Description:
+Add static checks and runtime assertions forbidding audio or transcript persistence.
+
+Acceptance Criteria
+
+No IndexedDB tables allow audio or text
+
+Attempts to persist audio throw errors
+
+Documented in code comments
+
+Dependencies: S-002
+
+EPIC 1 — Onboarding & Consent (NO SESSION YET)
+S-010: Splash Carousel
+
+Description:
+Implement swipe-based onboarding with consent language.
+
+Acceptance Criteria
+
+Cannot skip on first launch
+
+Offline-capable
+
+Copy matches PRD
+
+Stores completion flag locally
+
+Dependencies: S-001
+
+S-011: Permission Manager
+
+Description:
+Implement contextual permission requests (mic, motion).
+
+Acceptance Criteria
+
+Mic permission requested only when starting session
+
+Permission state visible in UI
+
+Permission denial handled gracefully
+
+Dependencies: S-010
+
+EPIC 2 — Session Lifecycle (NO AUDIO PROCESSING YET)
+S-020: Session State Machine
+
+Description:
+Implement session start/pause/resume/end with timestamps.
+
+Acceptance Criteria
+
+SESSION_START and SESSION_END events emitted
+
+Pause/resume reflected in timeline
+
+State survives app reload mid-session
+
+Dependencies: S-002, S-011
+
+S-021: Session Clock
+
+Description:
+Implement monotonic session clock used by all components.
+
+Acceptance Criteria
+
+All events reference same clock
+
+Clock pauses/resumes correctly
+
+No drift across components
+
+Dependencies: S-020
+
+EPIC 3 — Audio Capture & Signals (NO SPEECH YET)
+S-030: Microphone Capture
+
+Description:
+Capture PCM audio via Web Audio API.
+
+Acceptance Criteria
+
+Audio captured only during active session
+
+Stops immediately on session end
+
+No persistence
+
+Dependencies: S-020
+
+S-031: 10-Second Rolling Audio Buffer
+
+Description:
+Implement in-memory ring buffer for audio.
+
+Acceptance Criteria
+
+Buffer holds max 10s
+
+Old data overwritten
+
+Buffer cleared on session end
+
+Dependencies: S-030
+
+S-032: Audio Intensity Signal
+
+Description:
+Compute RMS intensity and store downsampled signal.
+
+Acceptance Criteria
+
+Intensity plotted on timeline
+
+Sampling rate documented
+
+Deterministic output
+
+Dependencies: S-031
+
+S-033: Silence Detection
+
+Description:
+Detect silence windows from intensity signal.
+
+Acceptance Criteria
+
+Silence windows emitted as signals
+
+Threshold configurable
+
+Used by later inference
+
+Dependencies: S-032
+
+EPIC 4 — Whisper ASR & Semantic Events
+S-040: Whisper WASM Integration
+
+Description:
+Load Whisper model locally and transcribe audio windows.
+
+Acceptance Criteria
+
+Model loads offline
+
+No network calls
+
+CPU usage bounded
+
+Dependencies: S-031
+
+S-041: Sliding Window Transcription
+
+Description:
+Transcribe overlapping 10s windows with 2–3s step.
+
+Acceptance Criteria
+
+Overlap implemented
+
+No duplicate event emission
+
+Transcript never persisted
+
+Dependencies: S-040
+
+S-042: Semantic Intent Parser
+
+Description:
+Convert transcript text into semantic events.
+
+Acceptance Criteria
+
+Emits STOP, GO, POSITIVE, NEGATIVE, CHANGE events
+
+Confidence assigned
+
+Transcript destroyed after parse
+
+Dependencies: S-041
+
+EPIC 5 — Inference Engines
+S-050: Rhythm Detection
+
+Description:
+Detect rhythmic cycles from audio intensity.
+
+Acceptance Criteria
+
+Emits RHYTHM_START / RHYTHM_STOP
+
+Rhythm strength signal available
+
+Deterministic output
+
+Dependencies: S-032
+
+S-051: Phase Inference
+
+Description:
+Infer foreplay/intercourse/cooldown phases.
+
+Acceptance Criteria
+
+Phase boundaries visible on timeline
+
+Based on documented rules
+
+Reproducible
+
+Dependencies: S-050
+
+S-052: Position Change Inference
+
+Description:
+Infer position change events.
+
+Acceptance Criteria
+
+Triggered by speech or rhythm change
+
+Emits POSITION_CHANGE
+
+Position segments visible
+
+Dependencies: S-042, S-050
+
+S-053: Orgasm Inference
+
+Description:
+Infer orgasm events with confidence weighting.
+
+Acceptance Criteria
+
+ORGASM_EVENT emitted
+
+Confidence displayed
+
+No hard guarantees claimed
+
+Dependencies: S-050, S-042
+
+EPIC 6 — Timeline UI
+S-060: Timeline Render Engine
+
+Description:
+Convert events + signals into render primitives.
+
+Acceptance Criteria
+
+Supports zoom levels
+
+Supports tap inspection
+
+Stable ordering
+
+Dependencies: S-032, S-042, S-050
+
+S-061: Timeline View UI
+
+Description:
+Render full multi-track timeline.
+
+Acceptance Criteria
+
+All tracks visible
+
+Colors consistent
+
+No interpretation text
+
+Dependencies: S-060
+
+EPIC 7 — Metrics & Scoring
+S-070: Metric Calculators
+
+Description:
+Compute counts, durations, latencies, densities.
+
+Acceptance Criteria
+
+Metrics reproducible
+
+No hidden state
+
+Traces to events
+
+Dependencies: S-060
+
+S-071: Score Engine
+
+Description:
+Compute composite session score.
+
+Acceptance Criteria
+
+Score decomposable
+
+Math inspectable
+
+No qualitative labels
+
+Dependencies: S-070
+
+S-072: Metrics & Score UI
+
+Description:
+Display session summary panel.
+
+Acceptance Criteria
+
+Shows numbers only
+
+Drill-down available
+
+Matches spec
+
+Dependencies: S-071
+
+EPIC 8 — Storage & Control
+S-080: IndexedDB Schema
+
+Description:
+Implement local DB with migrations.
+
+Acceptance Criteria
+
+Sessions/events/signals stored
+
+No forbidden fields
+
+Versioned schema
+
+Dependencies: S-002
+
+S-081: Delete Session
+
+Description:
+Hard-delete session data.
+
+Acceptance Criteria
+
+Irreversible
+
+Verified removal
+
+UI confirmation
+
+Dependencies: S-080
+
+S-082: Export Session
+
+Description:
+Export session as user-owned file.
+
+Acceptance Criteria
+
+No audio/text
+
+Explicit user action
+
+Format documented
+
+Dependencies: S-080
+
+EPIC 9 — Testkit & Validation
+S-090: Synthetic Sessions
+
+Description:
+Generate fake sessions for testing.
+
+Acceptance Criteria
+
+Covers edge cases
+
+Deterministic outputs
+
+Dependencies: S-002
+
+S-091: Golden Session Tests
+
+Description:
+Validate metrics against known sessions.
+
+Acceptance Criteria
+
+Tests fail on regression
+
+Scores match expected
+
+Dependencies: S-090
+
+DELIVERY ORDER (STRICT)
+
+Epics 0–2 (skeleton + lifecycle)
+
+Epic 3 (audio signals)
+
+Epic 4 (Whisper + speech)
+
+Epic 5 (inference)
+
+Epic 6 (timeline)
+
+Epic 7 (metrics)
+
+Epic 8 (storage controls)
+
+Epic 9 (tests)
+
+EXIT CRITERIA FOR STORY PHASE
+
+✅ Every story maps to a spec
+✅ No story introduces new requirements
+✅ Each story ≤1–3 dev days
+✅ Dependencies are explicit
+

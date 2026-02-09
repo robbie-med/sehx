@@ -1,0 +1,423 @@
+Analyst Agent — PRD Discovery (Planning Mode)
+Product Requirements Document (PRD) — v0.1
+
+(PWA-first, on-device, offline-first, quantified self)
+
+1) Product Summary
+
+Product name (working): SexMetrics (placeholder)
+
+One-sentence description:
+A privacy-first, offline-capable PWA that converts an intimate encounter into a time-stamped event timeline and measurable session metrics using on-device audio sensing and on-device Whisper transcription, without storing audio or transcripts.
+
+Two-sentence elevator pitch:
+Users start a session with a single button; the app listens locally (optionally transcribes speech locally), infers discrete events (e.g., STOP/GO/positive/negative, phase changes, position changes, orgasm markers) and produces an inspectable timeline plus trend dashboards over time. The app is an instrument: it reports numbers and timestamps—not blame, therapy, or interpretation—and keeps data on-device by default.
+
+2) Problem Statement
+
+People have limited memory and poor recall accuracy for complex, emotionally intense events, including sexual encounters—especially regarding timing, sequence, frequency, and patterns. Couples and individuals often want to understand what contributes to satisfaction and relationship health, but existing tools are either non-measurable (journaling), not privacy-first, overly interpretive, or focused on physiology/hardware rather than real-world encounters and communication.
+
+Core unmet need:
+A tool that produces specific, inspectable, measurable sexual encounter telemetry (events + timestamps + counts + durations), supports longitudinal trend analysis, and is trustworthy because it does not store raw audio/transcripts or send sensitive data to servers by default.
+
+3) Target Users & Personas
+Primary Persona: Quantified-Self Couple (cis male–female)
+
+Uses trackers (sleep/fitness/finance), likes dashboards
+
+Wants objective measures and trends
+
+Values privacy and control
+
+Motivated by improvement/curiosity, not therapy
+
+Secondary Persona: Individual Self-Tracker (cis male or cis female)
+
+Wants personal insight over time
+
+Uses self-report + lightweight instrumentation
+
+May not want partner involvement, but wants privacy and deletion control
+
+Explicit demographic scope for v1: cis male–female encounters (as defined by your product framing).
+(Note: architecture should remain inclusive/extensible; PRD scope is narrower.)
+
+4) Jobs-to-be-Done (JTBD)
+
+Capture & Review:
+“When we have sex, I want to capture what happened as a timeline so we can review later with timestamps, not vague impressions.”
+
+Measure & Compare:
+“I want consistent numbers (duration, foreplay, events, rhythm proxies) so I can compare sessions across weeks/months.”
+
+Understand Communication Signals:
+“I want a record of STOP/GO and positive/negative feedback markers and their timing so I can see patterns over time.”
+
+Experiment & Learn (without judgment):
+“I want to change one variable (more foreplay, fewer position changes, etc.) and see if metrics and satisfaction change.”
+
+Stay Private:
+“I want this to work offline and keep sensitive data on my device, with easy deletion and encrypted export.”
+
+5) Value Proposition
+What users get (clear and measurable)
+
+Session timeline with phases, inferred segments, and timestamped speech/feedback markers
+
+Session summary metrics (counts, durations, latencies, density indices)
+
+Longitudinal dashboards showing trends (weekly frequency, foreplay %, orgasm-event confidence trend, communication density, stop events, etc.)
+
+A decomposable session index (score) with full transparency
+
+Why this is different
+
+On-device Whisper enables event-level semantic detection without cloud speech services
+
+No audio or transcript persistence by design
+
+Quantified-self framing: numbers + timelines, not therapy/coaching
+
+6) Key Features (v1)
+6.1 Onboarding / Consent System (must-have)
+
+Swipe-through splash screens covering:
+
+Consent model and scope
+
+Screen-on / foreground requirement
+
+Charge recommendation
+
+Offline-first behavior
+
+Permissions (mic, optional motion)
+
+What is and isn’t stored
+
+Explicit toggles:
+
+Speech processing ON/OFF (default OFF)
+
+“No audio saved, no transcript saved” acknowledgement
+
+6.2 Session Recording (must-have)
+
+One-tap Start Session
+
+Live indicators:
+
+Session running
+
+Speech mode state
+
+“Listening” indicator if mic enabled
+
+One-tap Pause / Resume
+
+One-tap End Session
+
+Optional: short “session label” and quick self-report rating after ending (private, on-device)
+
+6.3 Timeline View (must-have)
+
+A horizontally scrollable timeline with stacked tracks:
+
+Phases: foreplay / intercourse / cooldown (inferred; editable later is a “maybe” for v1)
+
+Position segments: numbered segments (Position 1, 2, 3…), derived from change events (not named)
+
+Speech event markers:
+
+STOP, GO/CONTINUE, POSITIVE_FEEDBACK, NEGATIVE_FEEDBACK, CHANGE_REQUEST
+
+Audio intensity curve
+
+Rhythm density proxy (derived from audio envelope periodicity)
+
+Orgasm markers (confidence-weighted)
+
+Users can tap markers to see:
+
+Timestamp (mm:ss)
+
+Event type
+
+Confidence
+
+Source (speech/audio/inference)
+
+6.4 Session Summary Metrics (must-have)
+
+Total duration
+
+Foreplay duration and %
+
+Position change count
+
+STOP count + timestamps
+
+STOP latency metrics (e.g., STOP → next activity/rhythm resumption)
+
+Positive/negative feedback counts
+
+Orgasm-event count (confidence-weighted)
+
+Rhythm cycles proxy + continuity metrics
+
+A session index score (0–100) + component breakdown + math explanation
+
+6.5 Trend Dashboards (must-have)
+
+Weekly/monthly:
+
+Session frequency
+
+Average duration and variance
+
+Foreplay % trend
+
+Stop event trend + latency trend
+
+Communication density trend
+
+Orgasm-event confidence trend
+
+Score trend with variance bands
+
+6.6 Data Controls (must-have)
+
+Delete session (hard delete)
+
+Export encrypted archive (optional v1; at least export JSON in v1 if encryption isn’t ready)
+
+Local-only storage by default
+
+7) Non-Goals (Explicit Boundaries)
+
+Not therapy. Not coaching. Not diagnosis.
+
+No relationship advice or counseling language in v1
+
+No “you ignored X” or any attribution of intent or actor
+
+No partner identification / speaker identification
+
+No storing raw audio
+
+No storing transcripts
+
+No cloud sync in v1
+
+No named “positions” classification in v1 (only “position change events” and “position segments”)
+
+No attempt to identify consent violations as “abuse detection” product claims (only counts/latencies/events)
+
+8) Assumptions
+
+Users are willing to keep the phone nearby, screen on, app foregrounded
+
+Users accept that metrics are inferred with confidence values
+
+Whisper tiny/base quantized can run on modern phones sufficiently for near-real-time event extraction (bursty)
+
+Privacy-first design is a major driver of adoption
+
+9) Risks & Unknowns (Top Items)
+
+Performance & battery: Whisper on-device in a PWA may strain some devices.
+
+iOS limitations: Safari memory/background constraints could reduce reliability.
+
+False positives/negatives in semantic events, especially STOP vs playful language.
+
+User trust: the product lives or dies on credible privacy guarantees.
+
+Legal sensitivity: microphone-based capture in intimate contexts requires extremely clear, opt-in consent language and UX.
+
+Interpretation creep: temptation to add “meaning” must be resisted in v1.
+
+10) Success Criteria (Product-Level)
+
+Principle:
+
+The product is successful if it behaves exactly as specified, produces correct and inspectable outputs, and preserves user control and privacy — regardless of how often it is used.
+
+There are no behavioral analytics, no funnels, and no remote measurement.
+
+10.1 Functional Correctness
+
+The product works as intended if:
+
+A user can:
+
+Complete onboarding without network access
+
+Start, pause, resume, and end a session reliably
+
+Review a session timeline with correct timestamps
+
+View session summary metrics derived from events
+
+View longitudinal trends computed from local data only
+
+For a given session:
+
+Events appear on the timeline at correct relative times
+
+Metrics are reproducible from the underlying event log
+
+Session score decomposes cleanly into documented components
+
+10.2 Determinism & Reproducibility
+
+The product works as intended if:
+
+Given the same stored session data:
+
+Metrics recompute identically across app restarts
+
+Score recomputation yields the same result
+
+Algorithm versioning is explicit:
+
+Older sessions retain their original inference version
+
+Recompute is opt-in and transparent
+
+This is instrument behavior, not app behavior.
+
+10.3 Privacy & Data Integrity
+
+The product works as intended if:
+
+No raw audio is ever written to persistent storage
+
+No speech transcript is ever written to persistent storage
+
+All data remains on-device by default
+
+Deleting a session irreversibly removes:
+
+Events
+
+Signals
+
+Derived metrics
+
+Exported data contains only what the user explicitly exports
+
+10.4 Performance & Stability
+
+The product works as intended if:
+
+Sessions can run continuously in the foreground without crashes
+
+Audio processing does not block UI responsiveness
+
+Whisper transcription runs in bounded, bursty intervals
+
+Battery usage is proportional to session length and processing load
+
+The app fails safely (session ends cleanly) if the OS interrupts it
+
+No uptime SLAs. No engagement targets. Just correct behavior.
+
+10.5 User Control & Transparency
+
+The product works as intended if:
+
+Permissions are requested contextually and can be revoked
+
+Speech mode is:
+
+Off by default
+
+Visibly indicated when on
+
+Every metric shown can be traced to:
+
+One or more events
+
+One or more timestamps
+
+No metric is shown that cannot be explained numerically
+
+10.6 Scope Fidelity
+
+The product works as intended if:
+
+It does not:
+
+Identify people
+
+Attribute actions to individuals
+
+Interpret intent
+
+Provide advice, diagnosis, or therapy
+
+It remains a measurement instrument, not an evaluator
+
+What We Explicitly Do NOT Measure
+
+No installs
+
+No activation rates
+
+No retention
+
+No usage frequency
+
+No funnels
+
+No engagement analytics
+
+No remote logging
+
+If the app ships and works offline forever, that is success.
+
+11) v1 Scope vs v2+ (High-Level)
+v1 (PWA)
+
+Offline-first, on-device only
+
+Whisper-based event detection (speech optional)
+
+Timeline + summary + trends
+
+Deterministic scoring + explainability
+
+Manual delete/export
+
+v2 (Native or Wrapper)
+
+Better background stability
+
+Better sensor fusion
+
+Improved on-device inference speed
+
+Optional encrypted sync
+
+Optional post-session edit/annotation tools
+
+12) Open Questions (for later phases; not blocking PRD)
+
+Should there be a post-session “confirm orgasm” button to calibrate (optional)?
+
+How to represent uncertainty UI (confidence visualization) without interpretation?
+
+Export format: encrypted JSON vs encrypted zip vs E2EE sync later
+
+PRD Sign-off Checklist (for you)
+
+Scope is crisp and quantified-self aligned
+
+Non-goals are explicit enough to prevent drift
+
+Timeline-first product definition is clear
+
+Privacy and on-device posture is central, not optional
+
+If this PRD matches your intent, next is Spec Generation (Architect Agent) where we turn this into the formal system spec (data model, pipelines, scoring math, and build plan).

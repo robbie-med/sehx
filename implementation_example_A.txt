@@ -1,0 +1,257 @@
+IMPLEMENTATION PLAN — PHASE A (FOUNDATION)
+Scope (this message)
+
+Repo initialization
+
+Monorepo + PWA shell
+
+Core domain models
+
+Privacy guardrails
+
+Onboarding skeleton
+
+Session lifecycle (no audio yet)
+
+STEP 1 — Repo & Workspace Bootstrap (S-001)
+Create repo + workspace
+mkdir sexmetrics
+cd sexmetrics
+git init
+pnpm init
+
+pnpm-workspace.yaml
+packages:
+  - apps/*
+  - packages/*
+
+Root package.json
+{
+  "name": "sexmetrics",
+  "private": true,
+  "packageManager": "pnpm@8",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  }
+}
+
+STEP 2 — Core Domain Models (S-002)
+packages/core/package.json
+{
+  "name": "@sexmetrics/core",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
+
+packages/core/src/events.ts
+export enum EventType {
+  SESSION_START = "SESSION_START",
+  SESSION_END = "SESSION_END",
+  SESSION_PAUSE = "SESSION_PAUSE",
+  SESSION_RESUME = "SESSION_RESUME",
+
+  PHASE_START_FOREPLAY = "PHASE_START_FOREPLAY",
+  PHASE_END_FOREPLAY = "PHASE_END_FOREPLAY",
+  PHASE_START_INTERCOURSE = "PHASE_START_INTERCOURSE",
+  PHASE_START_COOLDOWN = "PHASE_START_COOLDOWN",
+
+  STOP = "STOP",
+  GO = "GO",
+  POSITIVE_FEEDBACK = "POSITIVE_FEEDBACK",
+  NEGATIVE_FEEDBACK = "NEGATIVE_FEEDBACK",
+  POSITION_CHANGE_REQUEST = "POSITION_CHANGE_REQUEST",
+  PACE_CHANGE_REQUEST = "PACE_CHANGE_REQUEST",
+
+  POSITION_CHANGE = "POSITION_CHANGE",
+  RHYTHM_START = "RHYTHM_START",
+  RHYTHM_STOP = "RHYTHM_STOP",
+  ORGASM_EVENT = "ORGASM_EVENT"
+}
+
+export type EventSource =
+  | "audio"
+  | "speech"
+  | "motion"
+  | "inference"
+  | "user";
+
+export interface Event {
+  id: string;
+  sessionId: string;
+  t: number; // seconds since session start
+  type: EventType;
+  source: EventSource;
+  confidence?: number;
+  payload?: Record<string, unknown>;
+}
+
+packages/core/src/session.ts
+export interface Session {
+  id: string;
+  startedAt: number;
+  endedAt?: number;
+  engineVersion: string;
+}
+
+packages/core/src/index.ts
+export * from "./events";
+export * from "./session";
+
+
+✅ This locks the canonical types used everywhere.
+
+STEP 3 — Privacy Guardrails (S-003)
+Rule: no audio or text persistence anywhere
+
+Create a shared assertion utility.
+
+packages/core/src/guards.ts
+export function forbidPersistence(value: unknown, label: string): never {
+  throw new Error(
+    `FORBIDDEN_PERSISTENCE: Attempted to persist ${label}`
+  );
+}
+
+
+Later, storage code must import this if any dev tries to add blobs or text.
+
+This is architectural enforcement, not policy.
+
+STEP 4 — PWA Shell (S-001 continued)
+apps/pwa/package.json
+{
+  "name": "@sexmetrics/pwa",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@sexmetrics/core": "workspace:*"
+  }
+}
+
+apps/pwa/vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  base: "./"
+});
+
+apps/pwa/src/main.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+ReactDOM.createRoot(
+  document.getElementById("root")!
+).render(<App />);
+
+apps/pwa/src/App.tsx
+import { useState } from "react";
+import { Onboarding } from "./onboarding/Onboarding";
+import { Home } from "./routes/Home";
+
+export default function App() {
+  const [onboarded, setOnboarded] = useState(
+    localStorage.getItem("onboarded") === "true"
+  );
+
+  return onboarded ? (
+    <Home />
+  ) : (
+    <Onboarding onComplete={() => {
+      localStorage.setItem("onboarded", "true");
+      setOnboarded(true);
+    }} />
+  );
+}
+
+STEP 5 — Onboarding Skeleton (S-010)
+apps/pwa/src/onboarding/Onboarding.tsx
+export function Onboarding({ onComplete }: { onComplete: () => void }) {
+  return (
+    <div>
+      <h1>Consent & Device Requirements</h1>
+      <ul>
+        <li>No audio or transcripts are stored</li>
+        <li>Screen must remain on</li>
+        <li>Works offline</li>
+      </ul>
+      <button onClick={onComplete}>I Understand</button>
+    </div>
+  );
+}
+
+
+No polish yet. Just functional compliance.
+
+STEP 6 — Session Lifecycle (S-020 / S-021)
+apps/pwa/src/session/sessionStore.ts
+import { Event, EventType } from "@sexmetrics/core";
+
+export class SessionRuntime {
+  sessionId: string | null = null;
+  startedAt = 0;
+  events: Event[] = [];
+
+  start() {
+    this.sessionId = crypto.randomUUID();
+    this.startedAt = performance.now();
+    this.emit(EventType.SESSION_START);
+  }
+
+  end() {
+    this.emit(EventType.SESSION_END);
+    this.sessionId = null;
+  }
+
+  emit(type: EventType) {
+    if (!this.sessionId) return;
+    const t = (performance.now() - this.startedAt) / 1000;
+    this.events.push({
+      id: crypto.randomUUID(),
+      sessionId: this.sessionId,
+      t,
+      type,
+      source: "user"
+    });
+  }
+}
+
+apps/pwa/src/routes/Home.tsx
+import { useRef } from "react";
+import { SessionRuntime } from "../session/sessionStore";
+
+export function Home() {
+  const runtime = useRef(new SessionRuntime());
+
+  return (
+    <div>
+      <button onClick={() => runtime.current.start()}>
+        Start Session
+      </button>
+      <button onClick={() => runtime.current.end()}>
+        End Session
+      </button>
+    </div>
+  );
+}
+
+
+This satisfies:
+
+Session start/end
+
+Canonical timestamps
+
+No audio yet
+
+No persistence yet
