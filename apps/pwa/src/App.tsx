@@ -350,7 +350,10 @@ export default function App() {
           modelCached={model.cached}
           modelDownloading={model.downloading}
           modelProgress={model.progress}
+          modelSizeBytes={model.sizeBytes}
+          modelError={model.error}
           onDownloadModel={model.download}
+          onClearModel={model.clear}
           modelId={modelId}
           modelOptions={MODEL_OPTIONS.map((option) => ({
             id: option.id,

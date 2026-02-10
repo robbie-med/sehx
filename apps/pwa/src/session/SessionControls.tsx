@@ -17,7 +17,10 @@ type SessionControlsProps = {
   modelCached?: boolean;
   modelDownloading?: boolean;
   modelProgress?: number;
+  modelSizeBytes?: number;
+  modelError?: string;
   onDownloadModel?: () => void;
+  onClearModel?: () => void;
   modelId?: string;
   modelOptions?: Array<{ id: string; label: string }>;
   onModelChange?: (id: string) => void;
@@ -48,7 +51,10 @@ export default function SessionControls({
   modelCached,
   modelDownloading,
   modelProgress,
+  modelSizeBytes,
+  modelError,
   onDownloadModel,
+  onClearModel,
   modelId,
   modelOptions,
   onModelChange,
@@ -176,6 +182,12 @@ export default function SessionControls({
           >
             {modelDownloading ? "Downloading model..." : "Download Whisper model"}
           </button>
+          {modelSizeBytes ? (
+            <div className="model-meta">
+              {(modelSizeBytes / (1024 * 1024)).toFixed(1)} MB
+              {modelSizeBytes > 50 * 1024 * 1024 ? " · Wi-Fi recommended" : ""}
+            </div>
+          ) : null}
           {modelDownloading ? (
             <div className="model-progress">
               {Math.round((modelProgress ?? 0) * 100)}%
@@ -183,6 +195,15 @@ export default function SessionControls({
           ) : null}
         </div>
       ) : null}
+      {modelCached ? (
+        <div className="model-download">
+          <div className="model-meta">Model cached for offline use.</div>
+          <button className="ghost" onClick={onClearModel}>
+            Remove cached model
+          </button>
+        </div>
+      ) : null}
+      {modelError ? <div className="permission-error">{modelError}</div> : null}
       {events.length ? (
         <div className="event-log">
           <div className="event-title">Events</div>

@@ -4,6 +4,7 @@ type DownloadState = {
   cached: boolean;
   downloading: boolean;
   progress: number;
+  sizeBytes?: number;
   error?: string;
 };
 
@@ -42,6 +43,9 @@ export function useModelDownload(url: string) {
       }
       const reader = response.body.getReader();
       const contentLength = Number(response.headers.get("Content-Length") ?? 0);
+      if (contentLength) {
+        setState((prev) => ({ ...prev, sizeBytes: contentLength }));
+      }
       let received = 0;
       const chunks: Uint8Array[] = [];
       while (true) {
