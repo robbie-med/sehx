@@ -32,6 +32,10 @@ export async function getActiveSession() {
     .last();
 }
 
+export async function listSessions(limit = 50) {
+  return db.sessions.orderBy("createdAt").reverse().limit(limit).toArray();
+}
+
 export async function addEvent(
   event: Omit<StoredEvent, "schemaVersion" | "createdAt" | "updatedAt">
 ) {

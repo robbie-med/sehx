@@ -205,6 +205,75 @@ button.ghost {
   margin-top: 20px;
 }
 
+.review-card {
+  margin-top: 20px;
+  max-width: none;
+}
+
+.review-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 2fr;
+  gap: 16px;
+}
+
+.review-list {
+  display: grid;
+  gap: 10px;
+}
+
+.session-item {
+  text-align: left;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.session-item.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(123, 211, 137, 0.3);
+}
+
+.session-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.session-item-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.review-detail {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-height: 140px;
+}
+
+.detail-title {
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.detail-row {
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.session-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -429,6 +498,12 @@ button.ghost {
   background: linear-gradient(120deg, var(--accent), var(--accent-strong));
   color: #0b0d12;
   font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .actions .danger {

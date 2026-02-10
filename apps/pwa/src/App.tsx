@@ -15,7 +15,7 @@ import { MODEL_OPTIONS } from "./asr/models";
 import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
-import { addMetric, addSignal } from "@sexmetrics/storage";
+import { addMetric, addSignal, exportSession, listSessions } from "@sexmetrics/storage";
 import {
   computeMetrics,
   computeMonthlyTrends,
@@ -82,6 +82,13 @@ export default function App() {
   const timeline = useTimeline(events, signalsLog);
   const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
   const [score, setScore] = useState<ReturnType<typeof computeScore> | null>(null);
+  const [sessions, setSessions] = useState<
+    Awaited<ReturnType<typeof listSessions>>
+  >([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<
+    Awaited<ReturnType<typeof exportSession>> | null
+  >(null);
   const [weeklyTrends, setWeeklyTrends] = useState<
     ReturnType<typeof computeWeeklyTrends>
   >([]);
@@ -94,6 +101,18 @@ export default function App() {
       setSignalsLog([]);
     }
   }, [sessionState.status]);
+
+  useEffect(() => {
+    listSessions().then((rows) => setSessions(rows));
+  }, [sessionState.status, sessionState.sessionId]);
+
+  useEffect(() => {
+    if (!selectedSessionId) {
+      setSelectedSession(null);
+      return;
+    }
+    exportSession(selectedSessionId).then((data) => setSelectedSession(data));
+  }, [selectedSessionId]);
 
   useEffect(() => {
     if (!events.length) {
@@ -260,6 +279,7 @@ export default function App() {
     );
     if (!ok) return;
     await hardDeleteSession();
+    listSessions().then((rows) => setSessions(rows));
     setSignalsLog([]);
   };
 
@@ -336,6 +356,57 @@ export default function App() {
           </div>
         </div>
         <TimelineView data={timeline.timeline} />
+        <section className="card review-card">
+          <h1>Session review</h1>
+          <div className="review-grid">
+            <div className="review-list">
+              {sessions.length ? (
+                sessions.map((session) => (
+                  <button
+                    key={session.id}
+                    className={`session-item ${selectedSessionId === session.id ? "active" : ""}`}
+                    onClick={() => setSelectedSessionId(session.id)}
+                  >
+                    <div className="session-title">
+                      {new Date(session.createdAt).toLocaleString()}
+                    </div>
+                    <div className="session-item-meta">
+                      {session.endedAt
+                        ? `${Math.max(
+                            0,
+                            Math.round((session.endedAt - session.createdAt - session.totalPausedMs) / 1000)
+                          )}s`
+                        : "in progress"}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="session-empty">No sessions stored yet.</div>
+              )}
+            </div>
+            <div className="review-detail">
+              {selectedSession?.session ? (
+                <>
+                  <div className="detail-title">Session detail</div>
+                  <div className="detail-row">
+                    Status: <strong>{selectedSession.session.status}</strong>
+                  </div>
+                  <div className="detail-row">
+                    Events: <strong>{selectedSession.events.length}</strong>
+                  </div>
+                  <div className="detail-row">
+                    Metrics: <strong>{selectedSession.metrics.length}</strong>
+                  </div>
+                  <div className="detail-row">
+                    Signals: <strong>{selectedSession.signals.length}</strong>
+                  </div>
+                </>
+              ) : (
+                <div className="session-empty">Select a session to inspect.</div>
+              )}
+            </div>
+          </div>
+        </section>
         {metrics.length ? (
           <section className="card metrics-card">
             <h1>Metrics (v1)</h1>
