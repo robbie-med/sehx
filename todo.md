@@ -18,7 +18,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 14. **Session review UI (PRD)** â€” session list, perâ€‘session detail view, delete/inspect. *(DONE)*
 15. **Timeline tapâ€‘toâ€‘inspect + scrubber (Spec)** â€” inspect events/segments at timestamp. *(DONE)*
 16. **Timeline track completeness (Spec)** â€” phases/positions/speech/orgasm/intensity/rhythm/silence with correct semantics. *(DONE)*
-17. **Determinism/versioning metadata** â€” store inference engine version + ASR model version per session. *(High, Medium)*
+17. **Determinism/versioning metadata** â€” store inference engine version + ASR model version per session. *(DONE)*
 18. **Privacy guardrails at storage layer** â€” enforce â€œno audio/transcriptâ€ in DB writes, not just static checks. *(High, Medium)*
 19. **Silence windows as signals (Spec)** â€” currently inferred; persist as signal series. *(Medium, Low)*
 20. **Rhythm detection fidelity** â€” spec calls for bandâ€‘pass + autocorrelation; current peak heuristic is a placeholder. *(Medium, Medium)*

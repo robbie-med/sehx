@@ -69,7 +69,15 @@ async function loadEvents(sessionId: string): Promise<Event[]> {
   }));
 }
 
-export function useSession() {
+type SessionSettings = {
+  engineVersion?: string;
+  inferenceVersion?: string;
+  asrModelId?: string;
+  asrModelUrl?: string;
+  speechEnabled?: boolean;
+};
+
+export function useSession(settings?: SessionSettings) {
   const [state, setState] = useState<SessionState>(emptyState);
   const [events, setEvents] = useState<Event[]>([]);
   const [tick, setTick] = useState(0);
@@ -97,13 +105,18 @@ export function useSession() {
       id: state.sessionId,
       createdAt: state.startedAt ?? Date.now(),
       endedAt: state.endedAt,
-      engineVersion: "v1",
-      settingsSnapshot: {},
+      engineVersion: settings?.engineVersion ?? "v1",
+      settingsSnapshot: {
+        inferenceVersion: settings?.inferenceVersion ?? "v1",
+        asrModelId: settings?.asrModelId,
+        asrModelUrl: settings?.asrModelUrl,
+        speechEnabled: settings?.speechEnabled ?? false
+      },
       status: state.status,
       pausedAt: state.pausedAt,
       totalPausedMs: state.totalPausedMs
     }).catch(() => {});
-  }, [state]);
+  }, [state, settings]);
 
   useEffect(() => {
     if (state.status === "active") {

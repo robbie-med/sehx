@@ -28,6 +28,8 @@ import { sessionBus } from "./session/sessionBus";
 const ONBOARD_KEY = "sm_onboarded_v1";
 const SPEECH_KEY = "sm_speech_enabled_v1";
 const LOW_MEMORY_GB = 4;
+const ENGINE_VERSION = "v1";
+const INFERENCE_VERSION = "v1";
 
 function pickDefaultModelId() {
   if (typeof navigator === "undefined") return MODEL_OPTIONS[0].id;
@@ -51,6 +53,22 @@ export default function App() {
   const [onboarded, setOnboarded] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const { status, requestMic } = usePermissions();
+  const mic = useMicrophone();
+  const signals = useSignalDetection(mic.rms, mic.active);
+  const lastRhythm = useRef<boolean | null>(null);
+  const [modelId, setModelId] = useState(() => pickDefaultModelId());
+  const selectedModel =
+    MODEL_OPTIONS.find((option) => option.id === modelId) ?? MODEL_OPTIONS[0];
+  const sessionSettings = useMemo(
+    () => ({
+      engineVersion: ENGINE_VERSION,
+      inferenceVersion: INFERENCE_VERSION,
+      asrModelId: selectedModel.id,
+      asrModelUrl: selectedModel.url,
+      speechEnabled
+    }),
+    [selectedModel.id, selectedModel.url, speechEnabled]
+  );
   const {
     state: sessionState,
     events,
@@ -62,13 +80,7 @@ export default function App() {
     getElapsedNow,
     hardDeleteSession,
     exportSessionData
-  } = useSession();
-  const mic = useMicrophone();
-  const signals = useSignalDetection(mic.rms, mic.active);
-  const lastRhythm = useRef<boolean | null>(null);
-  const [modelId, setModelId] = useState(() => pickDefaultModelId());
-  const selectedModel =
-    MODEL_OPTIONS.find((option) => option.id === modelId) ?? MODEL_OPTIONS[0];
+  } = useSession(sessionSettings);
   const model = useModelDownload(selectedModel.url);
   const asr = useAsr(
     speechEnabled,
