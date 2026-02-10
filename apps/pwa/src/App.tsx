@@ -15,6 +15,7 @@ import { MODEL_OPTIONS } from "./asr/models";
 import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
+import { addSignal } from "@sexmetrics/storage";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 
@@ -30,7 +31,8 @@ export default function App() {
     resumeSession,
     endSession,
     addEventNow,
-    getElapsedNow
+    getElapsedNow,
+    hardDeleteSession
   } = useSession();
   const mic = useMicrophone();
   const signals = useSignalDetection(mic.rms, mic.active);
@@ -62,15 +64,31 @@ export default function App() {
       const t = getElapsedNow();
       if (!t) return;
       const sessionId = sessionState.sessionId ?? "active";
-      setSignalsLog((prev) => [
-        ...prev,
+      const batch: SignalPoint[] = [
         { sessionId, t, type: "intensity", value: mic.rms },
         { sessionId, t, type: "rhythm", value: signals.rhythm.strength },
         { sessionId, t, type: "silence", value: signals.silenceActive ? 1 : 0 }
-      ]);
+      ];
+      setSignalsLog((prev) => [...prev, ...batch]);
+      batch.forEach((signal) => {
+        addSignal({
+          id: crypto.randomUUID(),
+          sessionId: signal.sessionId,
+          t: signal.t,
+          type: signal.type,
+          value: signal.value
+        }).catch(() => {});
+      });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [mic.active, mic.rms, signals.rhythm.strength, signals.silenceActive, getElapsedNow, sessionState.sessionId]);
+  }, [
+    mic.active,
+    mic.rms,
+    signals.rhythm.strength,
+    signals.silenceActive,
+    getElapsedNow,
+    sessionState.sessionId
+  ]);
 
   usePhaseInference(
     sessionState.status,
@@ -143,6 +161,16 @@ export default function App() {
     endSession();
   };
 
+  const handleDelete = async () => {
+    if (!sessionState.sessionId) return;
+    const ok = window.confirm(
+      "Delete this session permanently? This cannot be undone."
+    );
+    if (!ok) return;
+    await hardDeleteSession();
+    setSignalsLog([]);
+  };
+
   if (!onboarded) {
     return <SplashCarousel onFinish={handleFinish} />;
   }
@@ -180,6 +208,7 @@ export default function App() {
           onPause={handlePause}
           onResume={handleResume}
           onEnd={handleEnd}
+          onDeleteSession={handleDelete}
           error={status.error}
           events={events}
         />

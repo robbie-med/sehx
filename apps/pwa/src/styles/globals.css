@@ -343,6 +343,18 @@ button {
   font-weight: 600;
 }
 
+.actions .danger {
+  background: #2b1013;
+  color: #f5c2c7;
+  border: 1px solid #5b1b23;
+}
+
+.session-actions .danger {
+  background: #2b1013;
+  color: #f5c2c7;
+  border: 1px solid #5b1b23;
+}
+
 .actions button:disabled {
   opacity: 0.4;
   cursor: not-allowed;

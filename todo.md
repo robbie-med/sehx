@@ -2,9 +2,9 @@
 
 Below are deficiencies ranked by **impact × urgency × ease** (highest to lowest). Each item is numbered for tracking.
 
-1. **Fix GitHub Pages source pipeline (app not served)** — must serve built PWA, not Jekyll README; verify Pages source, deploy artifact, and URL. *(Impact: Critical, Ease: High)*
-2. **Replace localStorage with IndexedDB schema + repos (S‑080)** — implement sessions/events/signals/metrics tables + migrations; remove localStorage persistence. *(Critical, Medium)*
-3. **Implement hard delete (S‑081)** — irreversible removal across sessions/events/signals/metrics. *(Critical, Medium)*
+1. **Fix GitHub Pages source pipeline (app not served)** — must serve built PWA, not Jekyll README; verify Pages source, deploy artifact, and URL. *(DONE)*
+2. **Replace localStorage with IndexedDB schema + repos (S‑080)** — implement sessions/events/signals/metrics tables + migrations; remove localStorage persistence. *(DONE)*
+3. **Implement hard delete (S‑081)** — irreversible removal across sessions/events/signals/metrics. *(DONE)*
 4. **Export session (S‑082)** — JSON export (no audio/text), optional encryption wrapper. *(High, Medium)*
 5. **Metric calculators (S‑070)** — counts/durations/latencies/densities from event log. *(High, Medium)*
 6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(High, Medium)*

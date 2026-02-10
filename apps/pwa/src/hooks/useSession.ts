@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Event } from "@sexmetrics/core";
 import {
+  addEvent,
+  getActiveSession,
+  getEventsForSession,
+  deleteSession,
+  upsertSession
+} from "@sexmetrics/storage";
+import {
   emptyClock,
   endClock,
   elapsedMs,
@@ -20,9 +27,6 @@ type SessionState = {
   totalPausedMs: number;
 };
 
-const SESSION_KEY = "sm_session_state_v1";
-const EVENTS_KEY = "sm_session_events_v1";
-
 const emptyState: SessionState = { ...emptyClock };
 
 function nowMs() {
@@ -37,33 +41,30 @@ function computeElapsedMs(state: SessionState) {
   return elapsedMs(state, nowMs());
 }
 
-function loadState(): SessionState {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return emptyState;
-    const parsed = JSON.parse(raw) as SessionState;
-    return { ...emptyState, ...parsed };
-  } catch {
-    return emptyState;
-  }
+async function loadState(): Promise<SessionState> {
+  const active = await getActiveSession();
+  if (!active) return emptyState;
+  return {
+    status: active.status,
+    sessionId: active.id,
+    startedAt: active.createdAt,
+    pausedAt: active.pausedAt,
+    endedAt: active.endedAt,
+    totalPausedMs: active.totalPausedMs
+  };
 }
 
-function loadEvents(): Event[] {
-  try {
-    const raw = localStorage.getItem(EVENTS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Event[];
-  } catch {
-    return [];
-  }
-}
-
-function persistState(state: SessionState) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(state));
-}
-
-function persistEvents(events: Event[]) {
-  localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+async function loadEvents(sessionId: string): Promise<Event[]> {
+  const rows = await getEventsForSession(sessionId);
+  return rows.map((event) => ({
+    id: event.id,
+    sessionId: event.sessionId,
+    t: event.t,
+    type: event.type as Event["type"],
+    source: event.source as Event["source"],
+    confidence: event.confidence,
+    payload: event.payload
+  }));
 }
 
 export function useSession() {
@@ -72,17 +73,35 @@ export function useSession() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    setState(loadState());
-    setEvents(loadEvents());
+    let mounted = true;
+    loadState().then((loaded) => {
+      if (!mounted) return;
+      setState(loaded);
+      if (loaded.sessionId) {
+        loadEvents(loaded.sessionId).then((items) => {
+          if (!mounted) return;
+          setEvents(items);
+        });
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    persistState(state);
+    if (!state.sessionId) return;
+    upsertSession({
+      id: state.sessionId,
+      createdAt: state.startedAt ?? Date.now(),
+      endedAt: state.endedAt,
+      engineVersion: "v1",
+      settingsSnapshot: {},
+      status: state.status,
+      pausedAt: state.pausedAt,
+      totalPausedMs: state.totalPausedMs
+    }).catch(() => {});
   }, [state]);
-
-  useEffect(() => {
-    persistEvents(events);
-  }, [events]);
 
   useEffect(() => {
     if (state.status === "active") {
@@ -113,6 +132,15 @@ export function useSession() {
       confidence: 1
     };
     setEvents((prev) => [...prev, next]);
+    addEvent({
+      id: next.id,
+      sessionId: next.sessionId,
+      t: next.t,
+      type: next.type,
+      source: next.source,
+      confidence: next.confidence,
+      payload: next.payload
+    }).catch(() => {});
   };
 
   const startSession = () => {
@@ -153,6 +181,13 @@ export function useSession() {
     setEvents([]);
   };
 
+  const hardDeleteSession = async () => {
+    if (!state.sessionId) return;
+    await deleteSession(state.sessionId);
+    setState(emptyState);
+    setEvents([]);
+  };
+
   const addEventNow = (type: Event["type"]) => {
     if (state.status === "idle" || !state.startedAt) return;
     const elapsed = elapsedMs(state, nowMs());
@@ -177,6 +212,7 @@ export function useSession() {
     endSession,
     resetSession,
     addEventNow,
-    getElapsedNow
+    getElapsedNow,
+    hardDeleteSession
   };
 }

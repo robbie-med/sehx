@@ -23,6 +23,7 @@ type SessionControlsProps = {
   onModelChange?: (id: string) => void;
   crossOriginIsolated?: boolean;
   sharedArrayBuffer?: boolean;
+  onDeleteSession?: () => void;
 };
 
 export default function SessionControls({
@@ -49,7 +50,8 @@ export default function SessionControls({
   modelOptions,
   onModelChange,
   crossOriginIsolated,
-  sharedArrayBuffer
+  sharedArrayBuffer,
+  onDeleteSession
 }: SessionControlsProps) {
   return (
     <section className="card">
@@ -117,6 +119,11 @@ export default function SessionControls({
                 End
               </button>
             </>
+          ) : null}
+          {status === "ended" ? (
+            <button className="danger" onClick={onDeleteSession}>
+              Delete session
+            </button>
           ) : null}
         </div>
       </div>
