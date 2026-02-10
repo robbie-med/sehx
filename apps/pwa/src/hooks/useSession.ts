@@ -16,7 +16,7 @@ import {
   resumeClock,
   startClock
 } from "../session/sessionClock";
-import { sessionBus } from "../session/sessionBus";
+import { sessionBus, type BusEvent } from "../session/sessionBus";
 
 type SessionStatus = "idle" | "active" | "paused" | "ended";
 
@@ -132,19 +132,21 @@ export function useSession(settings?: SessionSettings) {
   );
 
   const emitEvent = (
-    type: Event["type"],
+    event: Event["type"] | BusEvent,
     timeMs: number,
     sessionIdOverride?: string
   ) => {
+    const normalized = typeof event === "string" ? { type: event } : event;
     const sessionId = sessionIdOverride ?? state.sessionId;
     if (!sessionId) return;
     const next: Event = {
       id: crypto.randomUUID(),
       sessionId,
       t: toSeconds(timeMs),
-      type,
+      type: normalized.type,
       source: "user",
-      confidence: 1
+      confidence: normalized.confidence ?? 1,
+      payload: normalized.payload
     };
     setEvents((prev) => [...prev, next]);
     addEvent({
@@ -216,10 +218,10 @@ export function useSession(settings?: SessionSettings) {
   };
 
   useEffect(() => {
-    return sessionBus.subscribe((type) => {
+    return sessionBus.subscribe((event) => {
       if (state.status === "idle" || !state.startedAt) return;
       const elapsed = elapsedMs(state, nowMs());
-      emitEvent(type, elapsed);
+      emitEvent(event, elapsed);
     });
   }, [state]);
 

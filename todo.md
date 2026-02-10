@@ -24,7 +24,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 20. **Rhythm detection fidelity** â€” spec calls for bandâ€‘pass + autocorrelation; current peak heuristic is a placeholder. *(DONE - autocorr)*
 21. **Phase inference fidelity** â€” use sustained rhythm onset/offset; current heuristic is basic. *(DONE - sustained rhythm)*
 22. **Position inference fidelity** â€” include rhythm signature change + speech, not just rhythm stop. *(DONE - strength change)*
-23. **Orgasm inference confidence** â€” add explicit confidence value and expose in UI. *(Medium, Medium)*
+23. **Orgasm inference confidence** â€” add explicit confidence value and expose in UI. *(DONE - confidence shown)*
 24. **Audio sampleâ€‘rate normalization** â€” implemented in worker; confirm correctness and add tests. *(Medium, Low)*
 25. **COOP/COEP strategy** â€” document singleâ€‘thread fallback and performance implications. *(Medium, Low)*
 26. **Service worker PWA caching strategy** â€” verify injectManifest caching and offline behavior. *(Medium, Low)*

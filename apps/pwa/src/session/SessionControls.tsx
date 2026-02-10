@@ -8,7 +8,7 @@ type SessionControlsProps = {
   onResume: () => void;
   onEnd: () => void;
   error?: string;
-  events: Array<{ id: string; type: string; t: number }>;
+  events: Array<{ id: string; type: string; t: number; confidence?: number }>;
   rms?: number;
   silenceActive?: boolean;
   rhythmStrength?: number;
@@ -191,6 +191,11 @@ export default function SessionControls({
               <li key={event.id}>
                 <span className="event-type">{event.type}</span>
                 <span className="event-time">{event.t.toFixed(1)}s</span>
+                {typeof event.confidence === "number" ? (
+                  <span className="event-confidence">
+                    {Math.round(event.confidence * 100)}%
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

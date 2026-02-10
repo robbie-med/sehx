@@ -137,8 +137,9 @@ button.ghost {
 }
 
 .event-log li {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
   font-size: 0.9rem;
   color: var(--fg);
 }
@@ -149,6 +150,11 @@ button.ghost {
 
 .event-time {
   color: var(--muted);
+}
+
+.event-confidence {
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .model-download {

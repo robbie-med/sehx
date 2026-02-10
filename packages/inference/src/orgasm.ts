@@ -1,5 +1,4 @@
-import type { EventType } from "@sexmetrics/core";
-import type { SessionStatus } from "./types";
+import type { SessionStatus, InferenceEvent } from "./types";
 
 type OrgasmInput = {
   status: SessionStatus;
@@ -10,7 +9,7 @@ type OrgasmInput = {
 };
 
 type OrgasmInference = {
-  update: (input: OrgasmInput) => EventType[];
+  update: (input: OrgasmInput) => InferenceEvent[];
   reset: () => void;
 };
 
@@ -26,7 +25,7 @@ export function createOrgasmInference(): OrgasmInference {
   };
 
   const update = ({ status, rms, rhythmStrength, silenceActive, nowMs }: OrgasmInput) => {
-    const outputs: EventType[] = [];
+    const outputs: InferenceEvent[] = [];
 
     if (status !== "active") {
       return outputs;
@@ -49,7 +48,9 @@ export function createOrgasmInference(): OrgasmInference {
     ) {
       lastEmit = nowMs;
       spikeAt = null;
-      outputs.push("ORGASM_EVENT");
+      const intensityScore = Math.min(1, Math.max(0, (rms - 0.05) / 0.2));
+      const confidence = Math.min(1, 0.4 + rhythmStrength * 0.4 + intensityScore * 0.2);
+      outputs.push({ type: "ORGASM_EVENT", confidence });
     }
 
     return outputs;

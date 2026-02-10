@@ -1,13 +1,20 @@
 import type { Event } from "@sexmetrics/core";
 
-type Listener = (type: Event["type"]) => void;
+export type BusEvent = {
+  type: Event["type"];
+  confidence?: number;
+  payload?: Record<string, unknown>;
+};
+
+type Listener = (event: BusEvent) => void;
 
 class SessionBus {
   private listeners = new Set<Listener>();
 
-  emit(type: Event["type"]) {
+  emit(event: Event["type"] | BusEvent) {
+    const payload = typeof event === "string" ? { type: event } : event;
     for (const listener of this.listeners) {
-      listener(type);
+      listener(payload);
     }
   }
 
