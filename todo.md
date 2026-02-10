@@ -16,7 +16,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 12. **ASR intent parsing quality** â€” replace regex rules with confidenceâ€‘weighted semantic patterns; add deâ€‘dup for overlapping windows. *(DONE - weighted patterns + dedupe)*
 13. **Speech toggle + privacy controls in settings (PRD)** â€” explicit ON/OFF, default OFF, visible state. *(DONE)*
 14. **Session review UI (PRD)** â€” session list, perâ€‘session detail view, delete/inspect. *(DONE)*
-15. **Timeline tapâ€‘toâ€‘inspect + scrubber (Spec)** â€” inspect events/segments at timestamp. *(High, Medium)*
+15. **Timeline tapâ€‘toâ€‘inspect + scrubber (Spec)** â€” inspect events/segments at timestamp. *(DONE)*
 16. **Timeline track completeness (Spec)** â€” phases/positions/speech/orgasm/intensity/rhythm/silence with correct semantics. *(High, Medium)*
 17. **Determinism/versioning metadata** â€” store inference engine version + ASR model version per session. *(High, Medium)*
 18. **Privacy guardrails at storage layer** â€” enforce â€œno audio/transcriptâ€ in DB writes, not just static checks. *(High, Medium)*

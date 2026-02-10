@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SplashCarousel from "./onboarding/SplashCarousel";
 import SessionControls from "./session/SessionControls";
 import { usePermissions } from "./hooks/usePermissions";
@@ -15,6 +15,7 @@ import { MODEL_OPTIONS } from "./asr/models";
 import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
+import type { TimelinePrimitive } from "@sexmetrics/timeline";
 import { addMetric, addSignal, exportSession, listSessions } from "@sexmetrics/storage";
 import {
   computeMetrics,
@@ -82,6 +83,8 @@ export default function App() {
   const timeline = useTimeline(events, signalsLog);
   const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
   const [score, setScore] = useState<ReturnType<typeof computeScore> | null>(null);
+  const [scrubTime, setScrubTime] = useState(0);
+  const [selectedPrimitive, setSelectedPrimitive] = useState<TimelinePrimitive | null>(null);
   const [sessions, setSessions] = useState<
     Awaited<ReturnType<typeof listSessions>>
   >([]);
@@ -101,6 +104,21 @@ export default function App() {
       setSignalsLog([]);
     }
   }, [sessionState.status]);
+
+  useEffect(() => {
+    if (!timeline.timeline.duration) return;
+    setScrubTime((prev) => Math.min(prev, timeline.timeline.duration));
+  }, [timeline.timeline.duration]);
+
+  const activePrimitives = useMemo(() => {
+    const { primitives } = timeline.timeline;
+    if (!primitives.length) return [];
+    return primitives.filter((primitive) => {
+      const end = primitive.tEnd ?? primitive.tStart;
+      const padding = primitive.kind === "marker" ? 0.5 : 0;
+      return scrubTime >= primitive.tStart - padding && scrubTime <= end + padding;
+    });
+  }, [timeline.timeline, scrubTime]);
 
   useEffect(() => {
     listSessions().then((rows) => setSessions(rows));
@@ -355,7 +373,61 @@ export default function App() {
             ))}
           </div>
         </div>
-        <TimelineView data={timeline.timeline} />
+        <TimelineView
+          data={timeline.timeline}
+          onSelect={(item) => {
+            setSelectedPrimitive(item);
+            setScrubTime(item.tStart);
+          }}
+        />
+        {timeline.timeline.duration ? (
+          <div className="timeline-inspector">
+            <div className="scrubber-row">
+              <input
+                type="range"
+                min={0}
+                max={timeline.timeline.duration}
+                step={0.1}
+                value={scrubTime}
+                onChange={(event) => setScrubTime(Number(event.target.value))}
+              />
+              <div className="scrub-time">{formatDuration(scrubTime)}</div>
+            </div>
+            <div className="inspect-panel">
+              {selectedPrimitive ? (
+                <>
+                  <div className="detail-title">Selected</div>
+                  <div className="detail-row">
+                    Track: <strong>{selectedPrimitive.track}</strong>
+                  </div>
+                  <div className="detail-row">
+                    Type: <strong>{selectedPrimitive.kind}</strong>
+                  </div>
+                  <div className="detail-row">
+                    Range:{" "}
+                    <strong>
+                      {formatDuration(selectedPrimitive.tStart)}{" "}
+                      {selectedPrimitive.tEnd
+                        ? `→ ${formatDuration(selectedPrimitive.tEnd)}`
+                        : ""}
+                    </strong>
+                  </div>
+                </>
+              ) : activePrimitives.length ? (
+                <>
+                  <div className="detail-title">Active at scrub</div>
+                  {activePrimitives.map((primitive) => (
+                    <div key={primitive.id} className="detail-row">
+                      <strong>{primitive.label ?? primitive.track}</strong>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="session-empty">No events at this time.</div>
+              )}
+            </div>
+          </div>
+        ) : null}
         <section className="card review-card">
           <h1>Session review</h1>
           <div className="review-grid">
