@@ -6,6 +6,7 @@ type PhaseState = "none" | "foreplay" | "intercourse" | "cooldown";
 type PhaseInput = {
   status: SessionStatus;
   rhythmActive: boolean;
+  nowMs: number;
 };
 
 type PhaseInference = {
@@ -16,13 +17,19 @@ type PhaseInference = {
 export function createPhaseInference(): PhaseInference {
   let phase: PhaseState = "none";
   let lastStatus: SessionStatus = "idle";
+  let rhythmStartedAt: number | null = null;
+  let rhythmStoppedAt: number | null = null;
+  const RHYTHM_ONSET_MS = 4000;
+  const RHYTHM_OFFSET_MS = 4000;
 
   const reset = () => {
     phase = "none";
     lastStatus = "idle";
+    rhythmStartedAt = null;
+    rhythmStoppedAt = null;
   };
 
-  const update = ({ status, rhythmActive }: PhaseInput) => {
+  const update = ({ status, rhythmActive, nowMs }: PhaseInput) => {
     const events: EventType[] = [];
 
     if (status === "active" && lastStatus !== "active") {
@@ -40,13 +47,20 @@ export function createPhaseInference(): PhaseInference {
     }
 
     if (status === "active") {
-      if (rhythmActive && phase === "foreplay") {
-        phase = "intercourse";
-        events.push("PHASE_END_FOREPLAY", "PHASE_START_INTERCOURSE");
-      }
-      if (!rhythmActive && phase === "intercourse") {
-        phase = "cooldown";
-        events.push("PHASE_START_COOLDOWN");
+      if (rhythmActive) {
+        if (!rhythmStartedAt) rhythmStartedAt = nowMs;
+        rhythmStoppedAt = null;
+        if (phase === "foreplay" && nowMs - rhythmStartedAt >= RHYTHM_ONSET_MS) {
+          phase = "intercourse";
+          events.push("PHASE_END_FOREPLAY", "PHASE_START_INTERCOURSE");
+        }
+      } else {
+        if (!rhythmStoppedAt) rhythmStoppedAt = nowMs;
+        rhythmStartedAt = null;
+        if (phase === "intercourse" && nowMs - rhythmStoppedAt >= RHYTHM_OFFSET_MS) {
+          phase = "cooldown";
+          events.push("PHASE_START_COOLDOWN");
+        }
       }
     }
 

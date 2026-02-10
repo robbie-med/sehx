@@ -22,7 +22,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 18. **Privacy guardrails at storage layer** â€” enforce â€œno audio/transcriptâ€ in DB writes, not just static checks. *(DONE)*
 19. **Silence windows as signals (Spec)** â€” currently inferred; persist as signal series. *(DONE)*
 20. **Rhythm detection fidelity** â€” spec calls for bandâ€‘pass + autocorrelation; current peak heuristic is a placeholder. *(DONE - autocorr)*
-21. **Phase inference fidelity** â€” use sustained rhythm onset/offset; current heuristic is basic. *(Medium, Medium)*
+21. **Phase inference fidelity** â€” use sustained rhythm onset/offset; current heuristic is basic. *(DONE - sustained rhythm)*
 22. **Position inference fidelity** â€” include rhythm signature change + speech, not just rhythm stop. *(Medium, Medium)*
 23. **Orgasm inference confidence** â€” add explicit confidence value and expose in UI. *(Medium, Medium)*
 24. **Audio sampleâ€‘rate normalization** â€” implemented in worker; confirm correctness and add tests. *(Medium, Low)*

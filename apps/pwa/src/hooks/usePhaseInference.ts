@@ -11,7 +11,11 @@ export function usePhaseInference(
   const inferenceRef = useRef(createPhaseInference());
 
   useEffect(() => {
-    const events = inferenceRef.current.update({ status, rhythmActive });
+    const events = inferenceRef.current.update({
+      status,
+      rhythmActive,
+      nowMs: Date.now()
+    });
     for (const event of events) {
       emitEvent(event as EventType);
     }
