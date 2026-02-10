@@ -1,0 +1,18 @@
+{
+  "version": "v1",
+  "options": [
+    {
+      "id": "ggml-tiny.en-q5_1.bin",
+      "label": "Whisper tiny.en q5_1 (fast, smaller)",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin",
+      "sizeBytes": 0
+    },
+    {
+      "id": "ggml-base.en-q5_1.bin",
+      "label": "Whisper base.en q5_1 (slower, better)",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin",
+      "sizeBytes": 0
+    }
+  ],
+  "defaultId": "ggml-tiny.en-q5_1.bin"
+}
