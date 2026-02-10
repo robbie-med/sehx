@@ -20,7 +20,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 16. **Timeline track completeness (Spec)** â€” phases/positions/speech/orgasm/intensity/rhythm/silence with correct semantics. *(DONE)*
 17. **Determinism/versioning metadata** â€” store inference engine version + ASR model version per session. *(DONE)*
 18. **Privacy guardrails at storage layer** â€” enforce â€œno audio/transcriptâ€ in DB writes, not just static checks. *(DONE)*
-19. **Silence windows as signals (Spec)** â€” currently inferred; persist as signal series. *(Medium, Low)*
+19. **Silence windows as signals (Spec)** â€” currently inferred; persist as signal series. *(DONE)*
 20. **Rhythm detection fidelity** â€” spec calls for bandâ€‘pass + autocorrelation; current peak heuristic is a placeholder. *(Medium, Medium)*
 21. **Phase inference fidelity** â€” use sustained rhythm onset/offset; current heuristic is basic. *(Medium, Medium)*
 22. **Position inference fidelity** â€” include rhythm signature change + speech, not just rhythm stop. *(Medium, Medium)*
