@@ -10,12 +10,27 @@ importers:
 
   apps/pwa:
     dependencies:
+      '@sexmetrics/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@sexmetrics/asr':
         specifier: workspace:*
         version: link:../../packages/asr
+      '@sexmetrics/capture':
+        specifier: workspace:*
+        version: link:../../packages/capture
       '@sexmetrics/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@sexmetrics/dsp':
+        specifier: workspace:*
+        version: link:../../packages/dsp
+      '@sexmetrics/inference':
+        specifier: workspace:*
+        version: link:../../packages/inference
+      '@sexmetrics/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@sexmetrics/timeline':
         specifier: workspace:*
         version: link:../../packages/timeline
@@ -51,6 +66,12 @@ importers:
         specifier: ^7.4.0
         version: 7.4.0
 
+  packages/analytics:
+    dependencies:
+      '@sexmetrics/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/asr:
     dependencies:
       '@sexmetrics/core':
@@ -60,7 +81,26 @@ importers:
         specifier: canary
         version: 0.1.0-canary.52de4c5
 
+  packages/capture: {}
+
   packages/core: {}
+
+  packages/dsp: {}
+
+  packages/inference:
+    dependencies:
+      '@sexmetrics/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/storage:
+    dependencies:
+      '@sexmetrics/core':
+        specifier: workspace:*
+        version: link:../core
+      dexie:
+        specifier: ^4.0.10
+        version: 4.3.0
 
   packages/timeline:
     dependencies:
@@ -1112,6 +1152,9 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  dexie@4.3.0:
+    resolution: {integrity: sha512-5EeoQpJvMKHe6zWt/FSIIuRa3CWlZeIl6zKXt+Lz7BU6RoRRLgX9dZEynRfXrkLcldKYCBiz7xekTEylnie1Ug==}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -3048,6 +3091,8 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  dexie@4.3.0: {}
 
   dunder-proto@1.0.1:
     dependencies:

@@ -1,13 +1,14 @@
 import { useCallback, useRef, useState } from "react";
-import type { MicCaptureState } from "../capture/microphone";
-import { startMicCapture, stopMicCapture } from "../capture/microphone";
+import type { MicCaptureState } from "@sexmetrics/capture";
 import {
+  startMicCapture,
+  stopMicCapture,
   clearRingBuffer,
   createRingBuffer,
   readRingBuffer,
   writeToRingBuffer
-} from "../capture/audioBuffer";
-import { computeRms } from "../dsp/rms";
+} from "@sexmetrics/capture";
+import { computeRms } from "@sexmetrics/dsp";
 
 export function useMicrophone() {
   const [active, setActive] = useState(false);

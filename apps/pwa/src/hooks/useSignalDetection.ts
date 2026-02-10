@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isSilence } from "../dsp/silence";
+import { isSilence } from "@sexmetrics/dsp";
 
 type RhythmSnapshot = {
   active: boolean;

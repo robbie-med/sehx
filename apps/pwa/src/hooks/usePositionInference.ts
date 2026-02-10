@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { Event } from "@sexmetrics/core";
-
-type SessionStatus = "idle" | "active" | "paused" | "ended";
+import type { Event, EventType } from "@sexmetrics/core";
+import { createPositionInference } from "@sexmetrics/inference";
+import type { SessionStatus } from "@sexmetrics/inference";
 
 export function usePositionInference(
   status: SessionStatus,
@@ -9,31 +9,12 @@ export function usePositionInference(
   rhythmActive: boolean,
   emitEvent: (type: "POSITION_CHANGE") => void
 ) {
-  const lastSpeechIndex = useRef(0);
-  const lastRhythm = useRef<boolean | null>(null);
+  const inferenceRef = useRef(createPositionInference());
 
   useEffect(() => {
-    if (status !== "active") return;
-
-    // Speech-driven position change requests.
-    const newEvents = events.slice(lastSpeechIndex.current);
-    for (const event of newEvents) {
-      if (event.type === "POSITION_CHANGE_REQUEST") {
-        emitEvent("POSITION_CHANGE");
-      }
+    const outputs = inferenceRef.current.update({ status, events, rhythmActive });
+    for (const output of outputs) {
+      emitEvent(output as EventType);
     }
-    lastSpeechIndex.current = events.length;
-  }, [events, status, emitEvent]);
-
-  useEffect(() => {
-    if (status !== "active") return;
-    if (lastRhythm.current === null) {
-      lastRhythm.current = rhythmActive;
-      return;
-    }
-    if (lastRhythm.current && !rhythmActive) {
-      emitEvent("POSITION_CHANGE");
-    }
-    lastRhythm.current = rhythmActive;
-  }, [rhythmActive, status, emitEvent]);
+  }, [events, rhythmActive, status, emitEvent]);
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-
-type SessionStatus = "idle" | "active" | "paused" | "ended";
+import type { EventType } from "@sexmetrics/core";
+import { createOrgasmInference } from "@sexmetrics/inference";
+import type { SessionStatus } from "@sexmetrics/inference";
 
 export function useOrgasmInference(
   status: SessionStatus,
@@ -9,31 +10,18 @@ export function useOrgasmInference(
   silenceActive: boolean,
   emitEvent: (type: "ORGASM_EVENT") => void
 ) {
-  const spikeRef = useRef<number | null>(null);
-  const lastEmit = useRef<number>(0);
-  const lastRms = useRef<number>(0);
+  const inferenceRef = useRef(createOrgasmInference());
 
   useEffect(() => {
-    if (status !== "active") return;
-    const now = Date.now();
-    const delta = rms - lastRms.current;
-    lastRms.current = rms;
-
-    const spike = delta > 0.02 && rms > 0.05 && rhythmStrength > 0.4;
-    if (spike) {
-      spikeRef.current = now;
-    }
-
-    const cooldownMs = 60_000;
-    if (
-      spikeRef.current &&
-      silenceActive &&
-      now - spikeRef.current < 12_000 &&
-      now - lastEmit.current > cooldownMs
-    ) {
-      lastEmit.current = now;
-      spikeRef.current = null;
-      emitEvent("ORGASM_EVENT");
+    const events = inferenceRef.current.update({
+      status,
+      rms,
+      rhythmStrength,
+      silenceActive,
+      nowMs: Date.now()
+    });
+    for (const event of events) {
+      emitEvent(event as EventType);
     }
   }, [status, rms, rhythmStrength, silenceActive, emitEvent]);
 }
