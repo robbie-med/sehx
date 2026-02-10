@@ -15,6 +15,7 @@ type WorkerResponse =
 
 let initialized = false;
 let whisper: WhisperWasmService | null = null;
+let resamplerValidated = false;
 
 async function loadModelBytes(url: string) {
   if ("caches" in self) {
@@ -48,6 +49,23 @@ function resampleTo16k(input: Float32Array, sampleRate: number) {
   return output;
 }
 
+function validateResampler() {
+  if (resamplerValidated) return;
+  resamplerValidated = true;
+  const sampleRate = 48000;
+  const input = new Float32Array(480);
+  for (let i = 0; i < input.length; i += 1) {
+    input[i] = Math.sin((2 * Math.PI * 1000 * i) / sampleRate);
+  }
+  const output = resampleTo16k(input, sampleRate);
+  const expected = Math.round(input.length * (16000 / sampleRate));
+  const ratioOk = Math.abs(output.length - expected) <= 2;
+  const max = output.reduce((acc, v) => Math.max(acc, Math.abs(v)), 0);
+  if (!ratioOk || max === 0) {
+    throw new Error("Resampler validation failed.");
+  }
+}
+
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   try {
     if (event.data.type === "init") {
@@ -58,6 +76,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           throw new Error("WebAssembly not supported.");
         }
       }
+      validateResampler();
       const modelBytes = await loadModelBytes(event.data.payload.modelUrl);
       await whisper.initModel(modelBytes);
       initialized = true;
