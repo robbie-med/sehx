@@ -16,6 +16,7 @@ import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
 import { addSignal } from "@sexmetrics/storage";
+import { computeMetrics } from "@sexmetrics/analytics";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 
@@ -52,12 +53,21 @@ export default function App() {
   );
   const [signalsLog, setSignalsLog] = useState<SignalPoint[]>([]);
   const timeline = useTimeline(events, signalsLog);
+  const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
 
   useEffect(() => {
     if (sessionState.status === "idle" || sessionState.status === "ended") {
       setSignalsLog([]);
     }
   }, [sessionState.status]);
+
+  useEffect(() => {
+    if (!events.length) {
+      setMetrics([]);
+      return;
+    }
+    setMetrics(computeMetrics(events));
+  }, [events]);
 
   useEffect(() => {
     if (!mic.active) return;
@@ -243,6 +253,19 @@ export default function App() {
           </div>
         </div>
         <TimelineView data={timeline.timeline} />
+        {metrics.length ? (
+          <section className="card metrics-card">
+            <h1>Metrics (v1)</h1>
+            <div className="metrics-grid">
+              {metrics.map((metric) => (
+                <div key={metric.key} className="metric-item">
+                  <div className="metric-key">{metric.key}</div>
+                  <div className="metric-value">{metric.value.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
     </div>
   );

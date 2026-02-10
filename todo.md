@@ -6,7 +6,7 @@ Below are deficiencies ranked by **impact × urgency × ease** (highest to lowes
 2. **Replace localStorage with IndexedDB schema + repos (S‑080)** — implement sessions/events/signals/metrics tables + migrations; remove localStorage persistence. *(DONE)*
 3. **Implement hard delete (S‑081)** — irreversible removal across sessions/events/signals/metrics. *(DONE)*
 4. **Export session (S‑082)** — JSON export (no audio/text), optional encryption wrapper. *(DONE)*
-5. **Metric calculators (S‑070)** — counts/durations/latencies/densities from event log. *(High, Medium)*
+5. **Metric calculators (S‑070)** — counts/durations/latencies/densities from event log. *(DONE)*
 6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(High, Medium)*
 7. **Metrics & score UI (S‑072)** — session summary panel, drill‑down math. *(High, Medium)*
 8. **Trend dashboards (PRD)** — weekly/monthly trends from stored metrics. *(High, Medium)*

@@ -14,6 +14,8 @@
     "@sexmetrics/core": "workspace:*",
     "@sexmetrics/asr": "workspace:*",
     "@sexmetrics/timeline": "workspace:*",
+    "@sexmetrics/storage": "workspace:*",
+    "@sexmetrics/analytics": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "workbox-window": "^7.1.0"
