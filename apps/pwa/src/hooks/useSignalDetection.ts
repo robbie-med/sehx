@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isSilence } from "@sexmetrics/dsp";
+import { computeRhythmStrength, isSilence } from "@sexmetrics/dsp";
 
 type RhythmSnapshot = {
   active: boolean;
@@ -19,9 +19,8 @@ type Sample = {
 
 const SILENCE_THRESHOLD = 0.01;
 const SILENCE_MIN_SECONDS = 2;
-const RHYTHM_THRESHOLD = 0.02;
 const RHYTHM_WINDOW_MS = 4000;
-const RHYTHM_MIN_PEAKS = 3;
+const RHYTHM_STRENGTH_THRESHOLD = 0.35;
 
 export function useSignalDetection(rms: number, active: boolean) {
   const [state, setState] = useState<SignalState>({
@@ -62,31 +61,22 @@ export function useSignalDetection(rms: number, active: boolean) {
     const cutoff = now - RHYTHM_WINDOW_MS;
     samples.current = samples.current.filter((s) => s.t >= cutoff);
 
-    const peaks = countPeaks(samples.current, RHYTHM_THRESHOLD);
-    const strength = Math.min(1, peaks / RHYTHM_MIN_PEAKS);
+    const points = samples.current;
+    let strength = 0;
+    if (points.length >= 4) {
+      const durationSeconds = (points[points.length - 1].t - points[0].t) / 1000;
+      const sampleRateHz = durationSeconds > 0 ? (points.length - 1) / durationSeconds : 0;
+      const values = points.map((point) => point.v);
+      strength = computeRhythmStrength(values, sampleRateHz).strength;
+    }
     setState((prev) => ({
       ...prev,
       rhythm: {
-        active: peaks >= RHYTHM_MIN_PEAKS,
+        active: strength >= RHYTHM_STRENGTH_THRESHOLD,
         strength
       }
     }));
   }, [rms, active]);
 
   return useMemo(() => state, [state]);
-}
-
-function countPeaks(window: Sample[], threshold: number) {
-  if (window.length < 3) return 0;
-  let peaks = 0;
-  for (let i = 1; i < window.length - 1; i += 1) {
-    const prev = window[i - 1].v;
-    const curr = window[i].v;
-    const next = window[i + 1].v;
-    if (curr > threshold && curr > prev && curr > next) {
-      peaks += 1;
-      i += 1;
-    }
-  }
-  return peaks;
 }
