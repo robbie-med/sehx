@@ -28,8 +28,17 @@ type SessionControlsProps = {
   sharedArrayBuffer?: boolean;
   speechEnabled?: boolean;
   onToggleSpeech?: () => void;
+  motionEnabled?: boolean;
+  motionSupported?: boolean;
+  motionPermission?: string;
+  motionActive?: boolean;
+  onToggleMotion?: () => void;
   onDeleteSession?: () => void;
   onExportSession?: () => void;
+  sessionLabel?: string;
+  sessionRating?: number;
+  onSessionLabelChange?: (value: string) => void;
+  onSessionRatingChange?: (value?: number) => void;
 };
 
 export default function SessionControls({
@@ -62,8 +71,17 @@ export default function SessionControls({
   sharedArrayBuffer,
   speechEnabled,
   onToggleSpeech,
+  motionEnabled,
+  motionSupported,
+  motionPermission,
+  motionActive,
+  onToggleMotion,
   onDeleteSession,
-  onExportSession
+  onExportSession,
+  sessionLabel,
+  sessionRating,
+  onSessionLabelChange,
+  onSessionRatingChange
 }: SessionControlsProps) {
   return (
     <section className="card">
@@ -98,6 +116,26 @@ export default function SessionControls({
             <button className="ghost" onClick={onToggleSpeech}>
               {speechEnabled ? "Disable" : "Enable"}
             </button>
+          </div>
+          <div className="toggle-row">
+            Motion capture:{" "}
+            <strong>
+              {motionEnabled ? "on" : "off"}
+              {motionSupported === false ? " (unsupported)" : ""}
+            </strong>
+            <button
+              className="ghost"
+              onClick={onToggleMotion}
+              disabled={motionSupported === false}
+            >
+              {motionEnabled ? "Disable" : "Enable"}
+            </button>
+          </div>
+          <div>
+            Motion permission: <strong>{motionPermission ?? "unknown"}</strong>
+          </div>
+          <div>
+            Motion active: <strong>{motionActive ? "yes" : "no"}</strong>
           </div>
           <div>
             ASR ready: <strong>{asrReady ? "yes" : "no"}</strong>
@@ -204,6 +242,33 @@ export default function SessionControls({
         </div>
       ) : null}
       {modelError ? <div className="permission-error">{modelError}</div> : null}
+      {status === "ended" ? (
+        <div className="session-review">
+          <div className="detail-title">Session reflection</div>
+          <label className="review-row">
+            Label
+            <input
+              type="text"
+              value={sessionLabel ?? ""}
+              placeholder="Optional label (e.g. relaxed, energetic)"
+              onChange={(event) => onSessionLabelChange?.(event.target.value)}
+            />
+          </label>
+          <label className="review-row">
+            Rating (1-5)
+            <input
+              type="number"
+              min={1}
+              max={5}
+              value={sessionRating ?? ""}
+              onChange={(event) => {
+                const raw = event.target.value;
+                onSessionRatingChange?.(raw === "" ? undefined : Number(raw));
+              }}
+            />
+          </label>
+        </div>
+      ) : null}
       {events.length ? (
         <div className="event-log">
           <div className="event-title">Events</div>

@@ -283,6 +283,8 @@ function buildSignalPrimitives(signals: SignalPoint[], duration: number) {
         ? "rhythm"
         : type === "silence"
         ? "silence"
+        : type === "motion"
+        ? "motion"
         : "intensity";
     primitives.push({
       id: `series-${type}`,

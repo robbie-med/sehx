@@ -24,9 +24,11 @@ import {
   computeWeeklyTrends
 } from "@sexmetrics/analytics";
 import { sessionBus } from "./session/sessionBus";
+import { useMotionCapture } from "./hooks/useMotionCapture";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 const SPEECH_KEY = "sm_speech_enabled_v1";
+const MOTION_KEY = "sm_motion_enabled_v1";
 const LOW_MEMORY_GB = 4;
 const ENGINE_VERSION = "v1";
 const INFERENCE_VERSION = "v1";
@@ -52,8 +54,10 @@ function looksLikeMemoryFailure(message?: string) {
 export default function App() {
   const [onboarded, setOnboarded] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [motionEnabled, setMotionEnabled] = useState(false);
   const { status, requestMic } = usePermissions();
   const mic = useMicrophone();
+  const motion = useMotionCapture();
   const signals = useSignalDetection(mic.rms, mic.active);
   const lastRhythm = useRef<boolean | null>(null);
   const [modelId, setModelId] = useState(() => pickDefaultModelId());
@@ -65,9 +69,10 @@ export default function App() {
       inferenceVersion: INFERENCE_VERSION,
       asrModelId: selectedModel.id,
       asrModelUrl: selectedModel.url,
-      speechEnabled
+      speechEnabled,
+      motionEnabled
     }),
-    [selectedModel.id, selectedModel.url, speechEnabled]
+    [selectedModel.id, selectedModel.url, speechEnabled, motionEnabled]
   );
   const {
     state: sessionState,
@@ -79,7 +84,9 @@ export default function App() {
     endSession,
     getElapsedNow,
     hardDeleteSession,
-    exportSessionData
+    exportSessionData,
+    sessionReview,
+    setSessionReview
   } = useSession(sessionSettings);
   const model = useModelDownload(selectedModel.url);
   const asr = useAsr(
@@ -177,7 +184,7 @@ export default function App() {
   }, [sessionState.sessionId]);
 
   useEffect(() => {
-    if (!mic.active) return;
+    if (!mic.active && !motion.state.active) return;
     const id = window.setInterval(() => {
       const t = getElapsedNow();
       if (!t) return;
@@ -187,6 +194,9 @@ export default function App() {
         { sessionId, t, type: "rhythm", value: signals.rhythm.strength },
         { sessionId, t, type: "silence", value: signals.silenceActive ? 1 : 0 }
       ];
+      if (motion.state.active) {
+        batch.push({ sessionId, t, type: "motion", value: motion.state.magnitude });
+      }
       setSignalsLog((prev) => [...prev, ...batch]);
       batch.forEach((signal) => {
         addSignal({
@@ -202,6 +212,8 @@ export default function App() {
   }, [
     mic.active,
     mic.rms,
+    motion.state.active,
+    motion.state.magnitude,
     signals.rhythm.strength,
     signals.silenceActive,
     getElapsedNow,
@@ -269,12 +281,45 @@ export default function App() {
     setSpeechEnabled(stored === "true");
   }, []);
 
+  useEffect(() => {
+    const stored = localStorage.getItem(MOTION_KEY);
+    setMotionEnabled(stored === "true");
+  }, []);
+
+  useEffect(() => {
+    if (!motionEnabled) {
+      motion.stop();
+      return;
+    }
+    if (sessionState.status === "active") {
+      motion.start();
+    } else {
+      motion.stop();
+    }
+  }, [motionEnabled, sessionState.status, motion.start, motion.stop]);
+
   const toggleSpeech = () => {
     setSpeechEnabled((prev) => {
       const next = !prev;
       localStorage.setItem(SPEECH_KEY, String(next));
       return next;
     });
+  };
+
+  const toggleMotion = async () => {
+    if (motionEnabled) {
+      setMotionEnabled(false);
+      localStorage.setItem(MOTION_KEY, "false");
+      motion.stop();
+      return;
+    }
+    const permission = await motion.requestPermission();
+    const next = permission === "granted";
+    setMotionEnabled(next);
+    localStorage.setItem(MOTION_KEY, String(next));
+    if (next && sessionState.status === "active") {
+      motion.start();
+    }
   };
 
   const handleFinish = () => {
@@ -286,20 +331,28 @@ export default function App() {
     const result = await requestMic();
     if (result === "granted") {
       await mic.start();
+      if (motionEnabled) {
+        motion.start();
+      }
       startSession();
     }
   };
 
   const handlePause = () => {
+    motion.stop();
     pauseSession();
   };
 
   const handleResume = () => {
+    if (motionEnabled) {
+      motion.start();
+    }
     resumeSession();
   };
 
   const handleEnd = async () => {
     await mic.stop();
+    motion.stop();
     endSession();
   };
 
@@ -364,6 +417,11 @@ export default function App() {
           sharedArrayBuffer={typeof SharedArrayBuffer !== "undefined"}
           speechEnabled={speechEnabled}
           onToggleSpeech={toggleSpeech}
+          motionEnabled={motionEnabled}
+          motionSupported={motion.state.supported}
+          motionPermission={motion.state.permission}
+          motionActive={motion.state.active}
+          onToggleMotion={toggleMotion}
           status={sessionState.status}
           elapsed={formatDuration(elapsedSeconds)}
           onStart={handleStart}
@@ -372,6 +430,10 @@ export default function App() {
           onEnd={handleEnd}
           onDeleteSession={handleDelete}
           onExportSession={handleExport}
+          sessionLabel={sessionReview.label}
+          sessionRating={sessionReview.rating}
+          onSessionLabelChange={(value) => setSessionReview({ label: value })}
+          onSessionRatingChange={(value) => setSessionReview({ rating: value })}
           error={status.error}
           events={events}
         />

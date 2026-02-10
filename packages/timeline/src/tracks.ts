@@ -6,7 +6,8 @@ export type TrackId =
   | "orgasm"
   | "intensity"
   | "rhythm"
-  | "silence";
+  | "silence"
+  | "motion";
 
 export type TrackDefinition = {
   id: TrackId;
@@ -22,7 +23,8 @@ export const TRACKS: TrackDefinition[] = [
   { id: "orgasm", label: "Orgasm", kind: "marker" },
   { id: "intensity", label: "Intensity", kind: "series" },
   { id: "rhythm", label: "Rhythm", kind: "series" },
-  { id: "silence", label: "Silence", kind: "segment" }
+  { id: "silence", label: "Silence", kind: "segment" },
+  { id: "motion", label: "Motion", kind: "series" }
 ];
 
 export const TRACK_ORDER = TRACKS.map((track) => track.id);

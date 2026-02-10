@@ -30,7 +30,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 26. **Service worker PWA caching strategy** â€” verify injectManifest caching and offline behavior. *(DONE)*
 27. **Model download UX** â€” show size, Wiâ€‘Fi warning, retry/resume, and â€œdelete cached modelâ€. *(DONE)*
 28. **Testkit + golden sessions (Sâ€‘090/Sâ€‘091)** â€” synthetic sessions + regression tests. *(Medium, Medium)*
-29. **Permissions: motion capture (PRD)** â€” optional DeviceMotion pipeline, permission flow. *(Low, Medium)*
-30. **Session label + selfâ€‘report rating (PRD optional)** â€” postâ€‘session prompt and storage. *(Low, Low)*
+29. **Permissions: motion capture (PRD)** - optional DeviceMotion pipeline, permission flow. *(DONE)*
+30. **Session label + self-report rating (PRD optional)** - post-session prompt and storage. *(DONE)*
 31. **Export encryption (Wishlist/PRD optional)** â€” WebCrypto archive support. *(Low, Medium)*
 32. **Docs** â€” fill `docs/*` with real architecture/taxonomy/scoring/onboarding copy. *(Low, Low)*

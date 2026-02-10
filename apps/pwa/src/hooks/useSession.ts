@@ -27,6 +27,8 @@ type SessionState = {
   pausedAt?: number;
   endedAt?: number;
   totalPausedMs: number;
+  label?: string;
+  rating?: number;
 };
 
 const emptyState: SessionState = { ...emptyClock };
@@ -52,7 +54,9 @@ async function loadState(): Promise<SessionState> {
     startedAt: active.createdAt,
     pausedAt: active.pausedAt,
     endedAt: active.endedAt,
-    totalPausedMs: active.totalPausedMs
+    totalPausedMs: active.totalPausedMs,
+    label: active.label,
+    rating: active.rating
   };
 }
 
@@ -75,6 +79,7 @@ type SessionSettings = {
   asrModelId?: string;
   asrModelUrl?: string;
   speechEnabled?: boolean;
+  motionEnabled?: boolean;
 };
 
 export function useSession(settings?: SessionSettings) {
@@ -110,8 +115,11 @@ export function useSession(settings?: SessionSettings) {
         inferenceVersion: settings?.inferenceVersion ?? "v1",
         asrModelId: settings?.asrModelId,
         asrModelUrl: settings?.asrModelUrl,
-        speechEnabled: settings?.speechEnabled ?? false
+        speechEnabled: settings?.speechEnabled ?? false,
+        motionEnabled: settings?.motionEnabled ?? false
       },
+      label: state.label,
+      rating: state.rating,
       status: state.status,
       pausedAt: state.pausedAt,
       totalPausedMs: state.totalPausedMs
@@ -210,6 +218,15 @@ export function useSession(settings?: SessionSettings) {
     return exportSession(state.sessionId);
   };
 
+  const setSessionReview = (review: { label?: string; rating?: number }) => {
+    if (!state.sessionId) return;
+    setState((prev) => ({
+      ...prev,
+      label: review.label ?? prev.label,
+      rating: review.rating ?? prev.rating
+    }));
+  };
+
   const lastEventType = events.length ? events[events.length - 1].type : null;
 
   const getElapsedNow = () => {
@@ -237,6 +254,8 @@ export function useSession(settings?: SessionSettings) {
     resetSession,
     getElapsedNow,
     hardDeleteSession,
-    exportSessionData
+    exportSessionData,
+    sessionReview: { label: state.label, rating: state.rating },
+    setSessionReview
   };
 }

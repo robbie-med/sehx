@@ -2,7 +2,8 @@ export const SIGNAL_TYPES = [
   "intensity",
   "rhythm",
   "silence",
-  "pitch_proxy"
+  "pitch_proxy",
+  "motion"
 ] as const;
 
 export type SignalType = (typeof SIGNAL_TYPES)[number];

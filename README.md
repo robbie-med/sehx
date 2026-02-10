@@ -7,6 +7,8 @@ Privacy-first, offline-first PWA that turns an encounter into a timestamped even
 - Mic capture + ring buffer + RMS + silence + rhythm inference
 - Whisper WASM pipeline + intent parser (STOP/GO/feedback/etc.)
 - Timeline renderer (multi-track)
+- Optional DeviceMotion capture (motion magnitude)
+- Post-session label + rating saved to local storage
 
 ## Local Dev
 ```bash
@@ -28,16 +30,10 @@ https://sehx.robbiemed.org
 ```
 
 ## Models
-Place Whisper model binaries in:
-```
-apps/pwa/public/models/
-```
+Models are downloaded on-demand from Hugging Face (cached locally for offline use).
+The app exposes a model selector + download/cache button.
 
-Current expected files:
-- `ggml-tiny.en-q5_1.bin`
-- `ggml-base.en-q5_1.bin`
-
-The app exposes a model selector + download/cache button for offline use.
+If you want to self-host, update `apps/pwa/public/models/models.json` and `apps/pwa/src/asr/models.ts`.
 
 ## Privacy Guarantees (Non-negotiable)
 - No audio persistence

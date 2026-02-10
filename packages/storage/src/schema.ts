@@ -6,6 +6,8 @@ export type StoredSession = {
   endedAt?: number;
   engineVersion: string;
   settingsSnapshot?: Record<string, unknown>;
+  label?: string;
+  rating?: number;
   status: "idle" | "active" | "paused" | "ended";
   pausedAt?: number;
   totalPausedMs: number;
