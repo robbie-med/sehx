@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WhisperAdapter, parseIntent, shouldRunWindow } from "@sexmetrics/asr";
 import type { EventType } from "@sexmetrics/core";
 
-const WINDOW_SECONDS = 10;
-const STEP_SECONDS = 2.5;
+const DEFAULT_WINDOW_SECONDS = 10;
+const DEFAULT_STEP_SECONDS = 2.5;
+const LOW_POWER_WINDOW_SECONDS = 6;
+const LOW_POWER_STEP_SECONDS = 4;
 const SPEECH_RMS_THRESHOLD = 0.015;
 
 type AsrState = {
@@ -12,6 +14,29 @@ type AsrState = {
   events: EventType[];
   error?: string;
 };
+
+type AsrProfile = {
+  windowSeconds: number;
+  stepSeconds: number;
+  lowPower: boolean;
+};
+
+function detectLowPowerProfile(): AsrProfile {
+  const memory = (navigator as Navigator & { deviceMemory?: number })
+    .deviceMemory;
+  const cores = navigator.hardwareConcurrency ?? 4;
+  const ua = navigator.userAgent ?? "";
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
+    .connection;
+  const saveData = connection?.saveData ?? false;
+  const lowPower = isMobile || (memory ? memory <= 4 : false) || cores <= 4 || saveData;
+  return {
+    lowPower,
+    windowSeconds: lowPower ? LOW_POWER_WINDOW_SECONDS : DEFAULT_WINDOW_SECONDS,
+    stepSeconds: lowPower ? LOW_POWER_STEP_SECONDS : DEFAULT_STEP_SECONDS
+  };
+}
 
 export function useAsr(
   active: boolean,
@@ -26,6 +51,7 @@ export function useAsr(
     lastTranscript: "",
     events: []
   });
+  const profileRef = useRef<AsrProfile>(detectLowPowerProfile());
   const adapterRef = useRef<WhisperAdapter | null>(null);
   const lastRunRef = useRef(0);
   const lastSilenceRef = useRef<boolean>(false);
@@ -74,11 +100,14 @@ export function useAsr(
     lastSilenceRef.current = silenceActive;
     if (
       !shouldRunWindow(lastRunRef.current, now, {
-        windowSeconds: WINDOW_SECONDS,
-        stepSeconds: STEP_SECONDS
+        windowSeconds: profileRef.current.windowSeconds,
+        stepSeconds: profileRef.current.stepSeconds
       })
     ) {
       if (!silenceEdge) return;
+    }
+    if (profileRef.current.lowPower && document.visibilityState !== "visible") {
+      return;
     }
     if (rms < SPEECH_RMS_THRESHOLD && !silenceEdge) return;
     lastRunRef.current = now;

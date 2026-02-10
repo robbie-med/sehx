@@ -25,6 +25,25 @@ import {
 import { sessionBus } from "./session/sessionBus";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
+const LOW_MEMORY_GB = 4;
+
+function pickDefaultModelId() {
+  if (typeof navigator === "undefined") return MODEL_OPTIONS[0].id;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const cores = navigator.hardwareConcurrency ?? 4;
+  const ua = navigator.userAgent ?? "";
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+  const lowPower = isMobile || (memory ? memory <= LOW_MEMORY_GB : false) || cores <= 4;
+  if (lowPower) {
+    return MODEL_OPTIONS.find((option) => option.tier === "light")?.id ?? MODEL_OPTIONS[0].id;
+  }
+  return MODEL_OPTIONS.find((option) => option.tier === "power")?.id ?? MODEL_OPTIONS[0].id;
+}
+
+function looksLikeMemoryFailure(message?: string) {
+  if (!message) return false;
+  return /memory|allocation|wasm|out of memory|malloc/i.test(message);
+}
 
 export default function App() {
   const [onboarded, setOnboarded] = useState(false);
@@ -44,7 +63,7 @@ export default function App() {
   const mic = useMicrophone();
   const signals = useSignalDetection(mic.rms, mic.active);
   const lastRhythm = useRef<boolean | null>(null);
-  const [modelId, setModelId] = useState(MODEL_OPTIONS[0].id);
+  const [modelId, setModelId] = useState(() => pickDefaultModelId());
   const selectedModel =
     MODEL_OPTIONS.find((option) => option.id === modelId) ?? MODEL_OPTIONS[0];
   const model = useModelDownload(selectedModel.url);
@@ -157,6 +176,16 @@ export default function App() {
     }
     asr.clearEvents();
   }, [asr.events, asr.clearEvents]);
+
+  useEffect(() => {
+    if (!asr.error) return;
+    if (selectedModel.tier !== "power") return;
+    if (!looksLikeMemoryFailure(asr.error)) return;
+    const lightModel = MODEL_OPTIONS.find((option) => option.tier === "light");
+    if (lightModel && lightModel.id !== modelId) {
+      setModelId(lightModel.id);
+    }
+  }, [asr.error, selectedModel.tier, modelId]);
 
   useOrgasmInference(
     sessionState.status,

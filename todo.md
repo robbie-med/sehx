@@ -12,7 +12,7 @@ Below are deficiencies ranked by **impact Ã— urgency Ã— ease** (highest to
 8. **Trend dashboards (PRD)** â€” weekly/monthly trends from stored metrics. *(DONE)*
 9. **Event bus / runtime decoupling (Wishlist)** â€” replace direct hook coupling with pub/sub â€œSession Busâ€. *(DONE)*
 10. **Move core logic into packages (Wishlist)** — capture/dsp/inference/storage/analytics should live in `packages/*`, not app. *(DONE)*
-11. **Whisper WASM reliability on mobile** â€” validate on iOS/Android; handle lowâ€‘memory and throttling. *(High, Medium)*
+11. **Whisper WASM reliability on mobile** â€” validate on iOS/Android; handle lowâ€‘memory and throttling. *(DONE - mitigations, needs device validation)*
 12. **ASR intent parsing quality** â€” replace regex rules with confidenceâ€‘weighted semantic patterns; add deâ€‘dup for overlapping windows. *(High, Medium)*
 13. **Speech toggle + privacy controls in settings (PRD)** â€” explicit ON/OFF, default OFF, visible state. *(High, Low)*
 14. **Session review UI (PRD)** â€” session list, perâ€‘session detail view, delete/inspect. *(High, Medium)*
