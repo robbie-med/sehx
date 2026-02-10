@@ -55,6 +55,7 @@ export function useAsr(
   const adapterRef = useRef<WhisperAdapter | null>(null);
   const lastRunRef = useRef(0);
   const lastSilenceRef = useRef<boolean>(false);
+  const lastIntentAt = useRef<Record<EventType, number>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -85,8 +86,17 @@ export function useAsr(
         window.samples,
         window.sampleRate
       );
+      const now = Date.now();
       const intents = parseIntent(result.text);
-      setState({ ready: true, lastTranscript: "", events: intents });
+      const dedupeWindowMs = profileRef.current.windowSeconds * 1000;
+      const nextEvents: EventType[] = [];
+      for (const intent of intents) {
+        const lastAt = lastIntentAt.current[intent.type] ?? 0;
+        if (now - lastAt < dedupeWindowMs) continue;
+        lastIntentAt.current[intent.type] = now;
+        nextEvents.push(intent.type);
+      }
+      setState({ ready: true, lastTranscript: "", events: nextEvents });
     } catch (err) {
       const message = err instanceof Error ? err.message : "ASR failed.";
       setState((prev) => ({ ...prev, error: message }));
