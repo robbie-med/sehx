@@ -5,6 +5,7 @@ import {
   getActiveSession,
   getEventsForSession,
   deleteSession,
+  exportSession,
   upsertSession
 } from "@sexmetrics/storage";
 import {
@@ -188,6 +189,11 @@ export function useSession() {
     setEvents([]);
   };
 
+  const exportSessionData = async () => {
+    if (!state.sessionId) return null;
+    return exportSession(state.sessionId);
+  };
+
   const addEventNow = (type: Event["type"]) => {
     if (state.status === "idle" || !state.startedAt) return;
     const elapsed = elapsedMs(state, nowMs());
@@ -213,6 +219,7 @@ export function useSession() {
     resetSession,
     addEventNow,
     getElapsedNow,
-    hardDeleteSession
+    hardDeleteSession,
+    exportSessionData
   };
 }

@@ -82,6 +82,15 @@ export async function addMetric(
   return record;
 }
 
+export async function exportSession(sessionId: string) {
+  const session = await db.sessions.get(sessionId);
+  if (!session) return null;
+  const events = await getEventsForSession(sessionId);
+  const signals = await getSignalsForSession(sessionId);
+  const metrics = await db.metrics.where("sessionId").equals(sessionId).toArray();
+  return { session, events, signals, metrics };
+}
+
 export async function deleteSession(sessionId: string) {
   await db.transaction("rw", db.sessions, db.events, db.signals, db.metrics, async () => {
     await db.events.where("sessionId").equals(sessionId).delete();

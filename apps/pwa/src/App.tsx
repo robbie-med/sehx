@@ -32,7 +32,8 @@ export default function App() {
     endSession,
     addEventNow,
     getElapsedNow,
-    hardDeleteSession
+    hardDeleteSession,
+    exportSessionData
   } = useSession();
   const mic = useMicrophone();
   const signals = useSignalDetection(mic.rms, mic.active);
@@ -171,6 +172,20 @@ export default function App() {
     setSignalsLog([]);
   };
 
+  const handleExport = async () => {
+    const data = await exportSessionData();
+    if (!data || !sessionState.sessionId) return;
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `session-${sessionState.sessionId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!onboarded) {
     return <SplashCarousel onFinish={handleFinish} />;
   }
@@ -209,6 +224,7 @@ export default function App() {
           onResume={handleResume}
           onEnd={handleEnd}
           onDeleteSession={handleDelete}
+          onExportSession={handleExport}
           error={status.error}
           events={events}
         />
