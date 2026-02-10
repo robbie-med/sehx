@@ -39,7 +39,7 @@ export default function SplashCarousel({ onFinish }: SplashCarouselProps) {
   return (
     <div className="onboarding-shell">
       <div className="onboarding-header">
-        <div className="logo">SexMetrics</div>
+        <div className="logo">Sehx</div>
         <div className="chip">Private PWA</div>
       </div>
 
