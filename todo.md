@@ -10,7 +10,7 @@ Below are deficiencies ranked by **impact × urgency × ease** (highest to lowes
 6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(DONE)*
 7. **Metrics & score UI (S‑072)** — session summary panel, drill‑down math. *(DONE)*
 8. **Trend dashboards (PRD)** — weekly/monthly trends from stored metrics. *(DONE)*
-9. **Event bus / runtime decoupling (Wishlist)** — replace direct hook coupling with pub/sub “Session Bus”. *(High, Medium)*
+9. **Event bus / runtime decoupling (Wishlist)** — replace direct hook coupling with pub/sub “Session Bus”. *(DONE)*
 10. **Move core logic into packages (Wishlist)** — capture/dsp/inference/storage/analytics should live in `packages/*`, not app. *(High, Medium)*
 11. **Whisper WASM reliability on mobile** — validate on iOS/Android; handle low‑memory and throttling. *(High, Medium)*
 12. **ASR intent parsing quality** — replace regex rules with confidence‑weighted semantic patterns; add de‑dup for overlapping windows. *(High, Medium)*

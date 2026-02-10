@@ -22,6 +22,7 @@ import {
   computeScore,
   computeWeeklyTrends
 } from "@sexmetrics/analytics";
+import { sessionBus } from "./session/sessionBus";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 
@@ -36,7 +37,6 @@ export default function App() {
     pauseSession,
     resumeSession,
     endSession,
-    addEventNow,
     getElapsedNow,
     hardDeleteSession,
     exportSessionData
@@ -140,30 +140,30 @@ export default function App() {
   usePhaseInference(
     sessionState.status,
     signals.rhythm.active,
-    (type) => addEventNow(type)
+    (type) => sessionBus.emit(type)
   );
 
   usePositionInference(
     sessionState.status,
     events,
     signals.rhythm.active,
-    (type) => addEventNow(type)
+    (type) => sessionBus.emit(type)
   );
 
   useEffect(() => {
     if (!asr.events.length) return;
     for (const event of asr.events) {
-      addEventNow(event);
+      sessionBus.emit(event);
     }
     asr.clearEvents();
-  }, [asr.events, asr.clearEvents, addEventNow]);
+  }, [asr.events, asr.clearEvents]);
 
   useOrgasmInference(
     sessionState.status,
     mic.rms,
     signals.rhythm.strength,
     signals.silenceActive,
-    (type) => addEventNow(type)
+    (type) => sessionBus.emit(type)
   );
 
   useEffect(() => {
@@ -171,11 +171,11 @@ export default function App() {
     if (lastRhythm.current === signals.rhythm.active) return;
     lastRhythm.current = signals.rhythm.active;
     if (signals.rhythm.active) {
-      addEventNow("RHYTHM_START");
+      sessionBus.emit("RHYTHM_START");
     } else {
-      addEventNow("RHYTHM_STOP");
+      sessionBus.emit("RHYTHM_STOP");
     }
-  }, [signals.rhythm.active, mic.active, addEventNow]);
+  }, [signals.rhythm.active, mic.active]);
 
   useEffect(() => {
     const stored = localStorage.getItem(ONBOARD_KEY);

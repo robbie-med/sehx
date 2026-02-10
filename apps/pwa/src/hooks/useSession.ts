@@ -16,6 +16,7 @@ import {
   resumeClock,
   startClock
 } from "../session/sessionClock";
+import { sessionBus } from "../session/sessionBus";
 
 type SessionStatus = "idle" | "active" | "paused" | "ended";
 
@@ -194,18 +195,20 @@ export function useSession() {
     return exportSession(state.sessionId);
   };
 
-  const addEventNow = (type: Event["type"]) => {
-    if (state.status === "idle" || !state.startedAt) return;
-    const elapsed = elapsedMs(state, nowMs());
-    emitEvent(type, elapsed);
-  };
-
   const lastEventType = events.length ? events[events.length - 1].type : null;
 
   const getElapsedNow = () => {
     if (state.status === "idle" || !state.startedAt) return 0;
     return elapsedMs(state, nowMs()) / 1000;
   };
+
+  useEffect(() => {
+    return sessionBus.subscribe((type) => {
+      if (state.status === "idle" || !state.startedAt) return;
+      const elapsed = elapsedMs(state, nowMs());
+      emitEvent(type, elapsed);
+    });
+  }, [state]);
 
   return {
     state,
@@ -217,7 +220,6 @@ export function useSession() {
     resumeSession,
     endSession,
     resetSession,
-    addEventNow,
     getElapsedNow,
     hardDeleteSession,
     exportSessionData
