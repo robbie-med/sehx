@@ -25,8 +25,8 @@ export default defineConfig({
       srcDir: "src",
       filename: "sw.ts",
       manifest: {
-        name: "SexMetrics",
-        short_name: "SexMetrics",
+        name: "Sehx",
+        short_name: "Sehx",
         start_url: ".",
         display: "standalone",
         background_color: "#0b0d12",

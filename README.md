@@ -1,4 +1,4 @@
-# SexMetrics
+# Sehx
 
 Privacy-first, offline-first PWA that turns an encounter into a timestamped event timeline and deterministic metrics using on-device audio + Whisper ASR. No audio or transcripts are stored.
 

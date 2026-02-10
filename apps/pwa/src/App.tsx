@@ -388,7 +388,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="logo">SexMetrics</div>
+        <div className="logo">Sehx</div>
         <div className="status">Offline-first shell</div>
       </header>
       <main className="app-main">
