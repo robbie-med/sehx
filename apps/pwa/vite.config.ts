@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  base: "/sehx/",
+  base: "./",
   plugins: [
     react(),
     VitePWA({
@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: "SexMetrics",
         short_name: "SexMetrics",
-        start_url: "/",
+        start_url: ".",
         display: "standalone",
         background_color: "#0b0d12",
         theme_color: "#0b0d12",
