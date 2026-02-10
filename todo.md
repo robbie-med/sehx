@@ -7,8 +7,8 @@ Below are deficiencies ranked by **impact × urgency × ease** (highest to lowes
 3. **Implement hard delete (S‑081)** — irreversible removal across sessions/events/signals/metrics. *(DONE)*
 4. **Export session (S‑082)** — JSON export (no audio/text), optional encryption wrapper. *(DONE)*
 5. **Metric calculators (S‑070)** — counts/durations/latencies/densities from event log. *(DONE)*
-6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(High, Medium)*
-7. **Metrics & score UI (S‑072)** — session summary panel, drill‑down math. *(High, Medium)*
+6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(DONE)*
+7. **Metrics & score UI (S‑072)** — session summary panel, drill‑down math. *(DONE)*
 8. **Trend dashboards (PRD)** — weekly/monthly trends from stored metrics. *(High, Medium)*
 9. **Event bus / runtime decoupling (Wishlist)** — replace direct hook coupling with pub/sub “Session Bus”. *(High, Medium)*
 10. **Move core logic into packages (Wishlist)** — capture/dsp/inference/storage/analytics should live in `packages/*`, not app. *(High, Medium)*

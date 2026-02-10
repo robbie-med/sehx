@@ -16,7 +16,7 @@ import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
 import { addSignal } from "@sexmetrics/storage";
-import { computeMetrics } from "@sexmetrics/analytics";
+import { computeMetrics, computeScore } from "@sexmetrics/analytics";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 
@@ -54,6 +54,7 @@ export default function App() {
   const [signalsLog, setSignalsLog] = useState<SignalPoint[]>([]);
   const timeline = useTimeline(events, signalsLog);
   const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
+  const [score, setScore] = useState<ReturnType<typeof computeScore> | null>(null);
 
   useEffect(() => {
     if (sessionState.status === "idle" || sessionState.status === "ended") {
@@ -64,9 +65,11 @@ export default function App() {
   useEffect(() => {
     if (!events.length) {
       setMetrics([]);
+      setScore(null);
       return;
     }
     setMetrics(computeMetrics(events));
+    setScore(computeScore(events));
   }, [events]);
 
   useEffect(() => {
@@ -261,6 +264,22 @@ export default function App() {
                 <div key={metric.key} className="metric-item">
                   <div className="metric-key">{metric.key}</div>
                   <div className="metric-value">{metric.value.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+        {score ? (
+          <section className="card metrics-card">
+            <h1>Score</h1>
+            <div className="score-total">{score.total.toFixed(1)}</div>
+            <div className="metrics-grid">
+              {score.components.map((component) => (
+                <div key={component.key} className="metric-item">
+                  <div className="metric-key">{component.key}</div>
+                  <div className="metric-value">
+                    {(component.score * 100).toFixed(1)}
+                  </div>
                 </div>
               ))}
             </div>
