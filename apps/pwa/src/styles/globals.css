@@ -28,6 +28,12 @@ button {
   font-family: inherit;
 }
 
+button.ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -76,6 +82,19 @@ button {
   gap: 6px;
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toggle-row button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
 }
 
 .session-actions {

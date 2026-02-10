@@ -23,6 +23,8 @@ type SessionControlsProps = {
   onModelChange?: (id: string) => void;
   crossOriginIsolated?: boolean;
   sharedArrayBuffer?: boolean;
+  speechEnabled?: boolean;
+  onToggleSpeech?: () => void;
   onDeleteSession?: () => void;
   onExportSession?: () => void;
 };
@@ -52,6 +54,8 @@ export default function SessionControls({
   onModelChange,
   crossOriginIsolated,
   sharedArrayBuffer,
+  speechEnabled,
+  onToggleSpeech,
   onDeleteSession,
   onExportSession
 }: SessionControlsProps) {
@@ -81,6 +85,13 @@ export default function SessionControls({
           </div>
           <div>
             Rhythm strength: <strong>{(rhythmStrength ?? 0).toFixed(2)}</strong>
+          </div>
+          <div className="toggle-row">
+            Speech recognition:{" "}
+            <strong>{speechEnabled ? "on" : "off"}</strong>
+            <button className="ghost" onClick={onToggleSpeech}>
+              {speechEnabled ? "Disable" : "Enable"}
+            </button>
           </div>
           <div>
             ASR ready: <strong>{asrReady ? "yes" : "no"}</strong>

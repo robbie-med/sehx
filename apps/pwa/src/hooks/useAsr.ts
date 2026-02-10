@@ -39,7 +39,8 @@ function detectLowPowerProfile(): AsrProfile {
 }
 
 export function useAsr(
-  active: boolean,
+  enabled: boolean,
+  micActive: boolean,
   rms: number,
   getWindow: () => { samples: Float32Array; sampleRate: number } | null,
   modelReady: boolean,
@@ -61,7 +62,7 @@ export function useAsr(
     let mounted = true;
     const init = async () => {
       try {
-        if (!modelReady) return;
+        if (!enabled || !modelReady) return;
         if (!adapterRef.current) adapterRef.current = new WhisperAdapter();
         await adapterRef.current.init(modelUrl);
         if (mounted) setState((prev) => ({ ...prev, ready: true }));
@@ -75,7 +76,15 @@ export function useAsr(
     return () => {
       mounted = false;
     };
-  }, [modelReady, modelUrl]);
+  }, [enabled, modelReady, modelUrl]);
+
+  useEffect(() => {
+    if (enabled) return;
+    if (!adapterRef.current) return;
+    adapterRef.current.dispose().catch(() => {});
+    adapterRef.current = null;
+    setState((prev) => ({ ...prev, ready: false }));
+  }, [enabled]);
 
   const runTranscription = useCallback(async () => {
     if (!adapterRef.current) return;
@@ -104,7 +113,7 @@ export function useAsr(
   }, [getWindow]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!enabled || !micActive) return;
     const now = Date.now();
     const silenceEdge = lastSilenceRef.current && !silenceActive;
     lastSilenceRef.current = silenceActive;
@@ -122,7 +131,7 @@ export function useAsr(
     if (rms < SPEECH_RMS_THRESHOLD && !silenceEdge) return;
     lastRunRef.current = now;
     runTranscription();
-  }, [active, rms, silenceActive, runTranscription]);
+  }, [enabled, micActive, rms, silenceActive, runTranscription]);
 
   const clearEvents = useCallback(() => {
     setState((prev) => ({ ...prev, events: [] }));

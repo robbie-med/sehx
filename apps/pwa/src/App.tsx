@@ -25,6 +25,7 @@ import {
 import { sessionBus } from "./session/sessionBus";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
+const SPEECH_KEY = "sm_speech_enabled_v1";
 const LOW_MEMORY_GB = 4;
 
 function pickDefaultModelId() {
@@ -47,6 +48,7 @@ function looksLikeMemoryFailure(message?: string) {
 
 export default function App() {
   const [onboarded, setOnboarded] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(false);
   const { status, requestMic } = usePermissions();
   const {
     state: sessionState,
@@ -68,6 +70,7 @@ export default function App() {
     MODEL_OPTIONS.find((option) => option.id === modelId) ?? MODEL_OPTIONS[0];
   const model = useModelDownload(selectedModel.url);
   const asr = useAsr(
+    speechEnabled,
     mic.active,
     mic.rms,
     mic.getWindow,
@@ -211,6 +214,19 @@ export default function App() {
     setOnboarded(stored === "true");
   }, []);
 
+  useEffect(() => {
+    const stored = localStorage.getItem(SPEECH_KEY);
+    setSpeechEnabled(stored === "true");
+  }, []);
+
+  const toggleSpeech = () => {
+    setSpeechEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem(SPEECH_KEY, String(next));
+      return next;
+    });
+  };
+
   const handleFinish = () => {
     localStorage.setItem(ONBOARD_KEY, "true");
     setOnboarded(true);
@@ -292,6 +308,8 @@ export default function App() {
           onModelChange={setModelId}
           crossOriginIsolated={window.crossOriginIsolated}
           sharedArrayBuffer={typeof SharedArrayBuffer !== "undefined"}
+          speechEnabled={speechEnabled}
+          onToggleSpeech={toggleSpeech}
           status={sessionState.status}
           elapsed={formatDuration(elapsedSeconds)}
           onStart={handleStart}
