@@ -69,7 +69,7 @@ export function buildTimeline(
   const rhythmSegments = buildRhythmSegments(windowed, duration);
   primitives.push(...rhythmSegments);
 
-  const silenceSegments = buildSilenceSegments(windowed, duration);
+  const silenceSegments = buildSilenceSegments(windowed, signals, duration);
   primitives.push(...silenceSegments);
 
   const signalPrimitives = buildSignalPrimitives(signals, duration);
@@ -185,7 +185,55 @@ function buildRhythmSegments(events: Event[], duration: number) {
   return segments;
 }
 
-function buildSilenceSegments(events: Event[], duration: number) {
+function buildSilenceSegments(
+  events: Event[],
+  signals: SignalPoint[],
+  duration: number
+) {
+  const silencePoints = signals
+    .filter((point) => point.type === "silence")
+    .sort((a, b) => a.t - b.t);
+
+  if (silencePoints.length) {
+    const segments: TimelinePrimitive[] = [];
+    let currentStart: number | null = null;
+    let lastT = silencePoints[0].t;
+    const gapThreshold = 2;
+
+    for (const point of silencePoints) {
+      const isSilent = point.value >= 0.5;
+      const gap = point.t - lastT;
+      if (currentStart === null && isSilent) {
+        currentStart = point.t;
+      } else if (currentStart !== null) {
+        if (!isSilent || gap > gapThreshold) {
+          segments.push({
+            id: `silence-${currentStart}-${point.t}`,
+            track: "silence",
+            kind: "segment",
+            tStart: currentStart,
+            tEnd: point.t,
+            label: "Silence"
+          });
+          currentStart = isSilent ? point.t : null;
+        }
+      }
+      lastT = point.t;
+    }
+
+    if (currentStart !== null) {
+      segments.push({
+        id: `silence-open`,
+        track: "silence",
+        kind: "segment",
+        tStart: currentStart,
+        tEnd: duration,
+        label: "Silence"
+      });
+    }
+    return segments;
+  }
+
   const segments: TimelinePrimitive[] = [];
   let currentStart: number | null = null;
   for (const event of events) {
