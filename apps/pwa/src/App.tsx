@@ -15,8 +15,13 @@ import { MODEL_OPTIONS } from "./asr/models";
 import { useTimeline } from "./hooks/useTimeline";
 import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
-import { addSignal } from "@sexmetrics/storage";
-import { computeMetrics, computeScore } from "@sexmetrics/analytics";
+import { addMetric, addSignal } from "@sexmetrics/storage";
+import {
+  computeMetrics,
+  computeMonthlyTrends,
+  computeScore,
+  computeWeeklyTrends
+} from "@sexmetrics/analytics";
 
 const ONBOARD_KEY = "sm_onboarded_v1";
 
@@ -55,6 +60,12 @@ export default function App() {
   const timeline = useTimeline(events, signalsLog);
   const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
   const [score, setScore] = useState<ReturnType<typeof computeScore> | null>(null);
+  const [weeklyTrends, setWeeklyTrends] = useState<
+    ReturnType<typeof computeWeeklyTrends>
+  >([]);
+  const [monthlyTrends, setMonthlyTrends] = useState<
+    ReturnType<typeof computeMonthlyTrends>
+  >([]);
 
   useEffect(() => {
     if (sessionState.status === "idle" || sessionState.status === "ended") {
@@ -68,9 +79,31 @@ export default function App() {
       setScore(null);
       return;
     }
-    setMetrics(computeMetrics(events));
+    const nextMetrics = computeMetrics(events);
+    setMetrics(nextMetrics);
     setScore(computeScore(events));
-  }, [events]);
+    if (sessionState.sessionId) {
+      nextMetrics.forEach((metric) => {
+        addMetric({
+          id: crypto.randomUUID(),
+          sessionId: sessionState.sessionId!,
+          key: metric.key,
+          value: metric.value,
+          engineVersion: "v1"
+        }).catch(() => {});
+      });
+    }
+  }, [events, sessionState.sessionId]);
+
+  useEffect(() => {
+    if (!sessionState.sessionId) return;
+    import("@sexmetrics/storage").then(({ db }) => {
+      db.metrics.toArray().then((rows) => {
+        setWeeklyTrends(computeWeeklyTrends(rows));
+        setMonthlyTrends(computeMonthlyTrends(rows));
+      });
+    });
+  }, [sessionState.sessionId]);
 
   useEffect(() => {
     if (!mic.active) return;
@@ -279,6 +312,41 @@ export default function App() {
                   <div className="metric-key">{component.key}</div>
                   <div className="metric-value">
                     {(component.score * 100).toFixed(1)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+        {(weeklyTrends.length || monthlyTrends.length) ? (
+          <section className="card metrics-card">
+            <h1>Trends</h1>
+            <div className="trend-section">
+              <h2>Weekly</h2>
+              {weeklyTrends.map((series) => (
+                <div key={series.key} className="trend-series">
+                  <div className="metric-key">{series.key}</div>
+                  <div className="trend-points">
+                    {series.points.map((point) => (
+                      <span key={point.period} className="trend-point">
+                        {point.period}: {point.value.toFixed(2)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="trend-section">
+              <h2>Monthly</h2>
+              {monthlyTrends.map((series) => (
+                <div key={series.key} className="trend-series">
+                  <div className="metric-key">{series.key}</div>
+                  <div className="trend-points">
+                    {series.points.map((point) => (
+                      <span key={point.period} className="trend-point">
+                        {point.period}: {point.value.toFixed(2)}
+                      </span>
+                    ))}
                   </div>
                 </div>
               ))}

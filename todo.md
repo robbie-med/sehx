@@ -9,7 +9,7 @@ Below are deficiencies ranked by **impact × urgency × ease** (highest to lowes
 5. **Metric calculators (S‑070)** — counts/durations/latencies/densities from event log. *(DONE)*
 6. **Score engine (S‑071)** — transparent, decomposable weighted score with “why” breakdown. *(DONE)*
 7. **Metrics & score UI (S‑072)** — session summary panel, drill‑down math. *(DONE)*
-8. **Trend dashboards (PRD)** — weekly/monthly trends from stored metrics. *(High, Medium)*
+8. **Trend dashboards (PRD)** — weekly/monthly trends from stored metrics. *(DONE)*
 9. **Event bus / runtime decoupling (Wishlist)** — replace direct hook coupling with pub/sub “Session Bus”. *(High, Medium)*
 10. **Move core logic into packages (Wishlist)** — capture/dsp/inference/storage/analytics should live in `packages/*`, not app. *(High, Medium)*
 11. **Whisper WASM reliability on mobile** — validate on iOS/Android; handle low‑memory and throttling. *(High, Medium)*

@@ -220,6 +220,37 @@ button {
   margin-bottom: 12px;
 }
 
+.trend-section {
+  margin-top: 12px;
+}
+
+.trend-section h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.trend-series {
+  margin-bottom: 10px;
+}
+
+.trend-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.trend-point {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+
 .timeline-grid {
   display: grid;
   gap: 14px;
