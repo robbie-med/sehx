@@ -218,6 +218,7 @@ export default function App() {
     sessionState.status,
     events,
     signals.rhythm.active,
+    signals.rhythm.strength,
     (type) => sessionBus.emit(type)
   );
 
