@@ -10,7 +10,12 @@ type DownloadState = {
 
 const CACHE_NAME = "sm-models-v1";
 
+function hasCacheAPI() {
+  return typeof caches !== "undefined";
+}
+
 async function isCached(url: string) {
+  if (!hasCacheAPI()) return false;
   const cache = await caches.open(CACHE_NAME);
   const match = await cache.match(url);
   return Boolean(match);
@@ -37,6 +42,11 @@ export function useModelDownload(url: string) {
   const download = useCallback(async () => {
     setState((prev) => ({ ...prev, downloading: true, error: undefined }));
     try {
+      if (!hasCacheAPI()) {
+        throw new Error(
+          "Cache API unavailable. Use HTTPS or install the PWA for offline model caching."
+        );
+      }
       const response = await fetch(url);
       if (!response.ok || !response.body) {
         throw new Error("Model download failed.");
@@ -69,6 +79,10 @@ export function useModelDownload(url: string) {
   }, [url]);
 
   const clear = useCallback(async () => {
+    if (!hasCacheAPI()) {
+      setState((prev) => ({ ...prev, cached: false }));
+      return;
+    }
     const cache = await caches.open(CACHE_NAME);
     await cache.delete(url);
     setState({ cached: false, downloading: false, progress: 0 });

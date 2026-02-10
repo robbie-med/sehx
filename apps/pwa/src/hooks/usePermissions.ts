@@ -12,6 +12,12 @@ export function usePermissions() {
 
   const requestMic = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const message =
+          "Microphone API unavailable. Use HTTPS or install the PWA to enable mic access.";
+        setStatus({ mic: "denied", error: message });
+        return "denied" as const;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
       setStatus({ mic: "granted" });

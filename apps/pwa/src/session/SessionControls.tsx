@@ -33,6 +33,8 @@ type SessionControlsProps = {
   motionPermission?: string;
   motionActive?: boolean;
   onToggleMotion?: () => void;
+  secureContext?: boolean;
+  cacheAvailable?: boolean;
   onDeleteSession?: () => void;
   onExportSession?: () => void;
   sessionLabel?: string;
@@ -76,6 +78,8 @@ export default function SessionControls({
   motionPermission,
   motionActive,
   onToggleMotion,
+  secureContext,
+  cacheAvailable,
   onDeleteSession,
   onExportSession,
   sessionLabel,
@@ -149,6 +153,12 @@ export default function SessionControls({
           <div>
             SharedArrayBuffer:{" "}
             <strong>{sharedArrayBuffer ? "yes" : "no"}</strong>
+          </div>
+          <div>
+            Secure context: <strong>{secureContext ? "yes" : "no"}</strong>
+          </div>
+          <div>
+            Cache API: <strong>{cacheAvailable ? "yes" : "no"}</strong>
           </div>
         </div>
         <div className="session-actions">

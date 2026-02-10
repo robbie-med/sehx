@@ -415,6 +415,8 @@ export default function App() {
           onModelChange={setModelId}
           crossOriginIsolated={window.crossOriginIsolated}
           sharedArrayBuffer={typeof SharedArrayBuffer !== "undefined"}
+          secureContext={window.isSecureContext}
+          cacheAvailable={typeof caches !== "undefined"}
           speechEnabled={speechEnabled}
           onToggleSpeech={toggleSpeech}
           motionEnabled={motionEnabled}

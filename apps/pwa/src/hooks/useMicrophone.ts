@@ -20,6 +20,9 @@ export function useMicrophone() {
 
   const start = useCallback(async () => {
     if (captureRef.current) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone API unavailable. Use HTTPS or install the PWA.");
+    }
     const capture = await startMicCapture({
       onAudioFrame: (samples, sampleRate) => {
         if (!bufferRef.current) {
