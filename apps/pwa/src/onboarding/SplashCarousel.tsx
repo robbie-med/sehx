@@ -8,22 +8,12 @@ type SplashCarouselProps = {
 
 export default function SplashCarousel({ onFinish }: SplashCarouselProps) {
   const [index, setIndex] = useState(0);
-  const [consent, setConsent] = useState({
-    privacy: false,
-    foreground: false,
-    permissions: false,
-    speechOptIn: false
-  });
+  const [consent, setConsent] = useState({ understood: false });
 
   const atEnd = index === slides.length;
   const canAdvance = useMemo(() => {
     if (!atEnd) return true;
-    return (
-      consent.privacy &&
-      consent.foreground &&
-      consent.permissions &&
-      consent.speechOptIn
-    );
+    return consent.understood;
   }, [atEnd, consent]);
 
   const goNext = () => {

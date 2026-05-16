@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SplashCarousel from "./onboarding/SplashCarousel";
-import SessionControls from "./session/SessionControls";
+import RecordView from "./views/RecordView";
+import HistoryView from "./views/HistoryView";
+import InsightsView from "./views/InsightsView";
+import SessionSummary from "./session/SessionSummary";
+import DevPanel from "./components/DevPanel";
 import { usePermissions } from "./hooks/usePermissions";
 import { useSession } from "./hooks/useSession";
 import { formatDuration } from "./utils/time";
@@ -13,9 +17,7 @@ import { useAsr } from "./hooks/useAsr";
 import { useModelDownload } from "./hooks/useModelDownload";
 import { MODEL_OPTIONS } from "./asr/models";
 import { useTimeline } from "./hooks/useTimeline";
-import TimelineView from "./timeline/TimelineView";
 import type { SignalPoint } from "@sexmetrics/core";
-import type { TimelinePrimitive } from "@sexmetrics/timeline";
 import { addMetric, addSignal, exportSession, listSessions } from "@sexmetrics/storage";
 import {
   computeMetrics,
@@ -41,9 +43,9 @@ function pickDefaultModelId() {
   const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
   const lowPower = isMobile || (memory ? memory <= LOW_MEMORY_GB : false) || cores <= 4;
   if (lowPower) {
-    return MODEL_OPTIONS.find((option) => option.tier === "light")?.id ?? MODEL_OPTIONS[0].id;
+    return MODEL_OPTIONS.find((o) => o.tier === "light")?.id ?? MODEL_OPTIONS[0].id;
   }
-  return MODEL_OPTIONS.find((option) => option.tier === "power")?.id ?? MODEL_OPTIONS[0].id;
+  return MODEL_OPTIONS.find((o) => o.tier === "power")?.id ?? MODEL_OPTIONS[0].id;
 }
 
 function looksLikeMemoryFailure(message?: string) {
@@ -55,14 +57,16 @@ export default function App() {
   const [onboarded, setOnboarded] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(false);
+  const [activeTab, setActiveTab] = useState<"record" | "history" | "insights">("record");
+
   const { status, requestMic } = usePermissions();
   const mic = useMicrophone();
   const motion = useMotionCapture();
   const signals = useSignalDetection(mic.rms, mic.active);
   const lastRhythm = useRef<boolean | null>(null);
   const [modelId, setModelId] = useState(() => pickDefaultModelId());
-  const selectedModel =
-    MODEL_OPTIONS.find((option) => option.id === modelId) ?? MODEL_OPTIONS[0];
+  const selectedModel = MODEL_OPTIONS.find((o) => o.id === modelId) ?? MODEL_OPTIONS[0];
+
   const sessionSettings = useMemo(
     () => ({
       engineVersion: ENGINE_VERSION,
@@ -74,6 +78,7 @@ export default function App() {
     }),
     [selectedModel.id, selectedModel.url, speechEnabled, motionEnabled]
   );
+
   const {
     state: sessionState,
     events,
@@ -88,6 +93,7 @@ export default function App() {
     sessionReview,
     setSessionReview
   } = useSession(sessionSettings);
+
   const model = useModelDownload(selectedModel.url);
   const asr = useAsr(
     speechEnabled,
@@ -98,25 +104,27 @@ export default function App() {
     selectedModel.url,
     signals.silenceActive
   );
+
   const [signalsLog, setSignalsLog] = useState<SignalPoint[]>([]);
   const timeline = useTimeline(events, signalsLog);
-  const [metrics, setMetrics] = useState<{ key: string; value: number }[]>([]);
   const [score, setScore] = useState<ReturnType<typeof computeScore> | null>(null);
-  const [scrubTime, setScrubTime] = useState(0);
-  const [selectedPrimitive, setSelectedPrimitive] = useState<TimelinePrimitive | null>(null);
-  const [sessions, setSessions] = useState<
-    Awaited<ReturnType<typeof listSessions>>
-  >([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [selectedSession, setSelectedSession] = useState<
-    Awaited<ReturnType<typeof exportSession>> | null
-  >(null);
-  const [weeklyTrends, setWeeklyTrends] = useState<
-    ReturnType<typeof computeWeeklyTrends>
-  >([]);
-  const [monthlyTrends, setMonthlyTrends] = useState<
-    ReturnType<typeof computeMonthlyTrends>
-  >([]);
+  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof listSessions>>>([]);
+  const [weeklyTrends, setWeeklyTrends] = useState<ReturnType<typeof computeWeeklyTrends>>([]);
+  const [monthlyTrends, setMonthlyTrends] = useState<ReturnType<typeof computeMonthlyTrends>>([]);
+
+  // Derive current phase label from most recent phase event
+  const currentPhase = useMemo(() => {
+    const phaseTypes = ["PHASE_START_FOREPLAY", "PHASE_START_INTERCOURSE", "PHASE_START_COOLDOWN"];
+    const last = [...events].reverse().find((e) => phaseTypes.includes(e.type));
+    if (!last) return sessionState.status === "active" ? "Starting…" : "";
+    return (
+      {
+        PHASE_START_FOREPLAY:    "Foreplay",
+        PHASE_START_INTERCOURSE: "Intercourse",
+        PHASE_START_COOLDOWN:    "Cooling down",
+      }[last.type] ?? ""
+    );
+  }, [events, sessionState.status]);
 
   useEffect(() => {
     if (sessionState.status === "idle" || sessionState.status === "ended") {
@@ -125,40 +133,15 @@ export default function App() {
   }, [sessionState.status]);
 
   useEffect(() => {
-    if (!timeline.timeline.duration) return;
-    setScrubTime((prev) => Math.min(prev, timeline.timeline.duration));
-  }, [timeline.timeline.duration]);
-
-  const activePrimitives = useMemo(() => {
-    const { primitives } = timeline.timeline;
-    if (!primitives.length) return [];
-    return primitives.filter((primitive) => {
-      const end = primitive.tEnd ?? primitive.tStart;
-      const padding = primitive.kind === "marker" ? 0.5 : 0;
-      return scrubTime >= primitive.tStart - padding && scrubTime <= end + padding;
-    });
-  }, [timeline.timeline, scrubTime]);
-
-  useEffect(() => {
     listSessions().then((rows) => setSessions(rows));
   }, [sessionState.status, sessionState.sessionId]);
 
   useEffect(() => {
-    if (!selectedSessionId) {
-      setSelectedSession(null);
-      return;
-    }
-    exportSession(selectedSessionId).then((data) => setSelectedSession(data));
-  }, [selectedSessionId]);
-
-  useEffect(() => {
     if (!events.length) {
-      setMetrics([]);
       setScore(null);
       return;
     }
     const nextMetrics = computeMetrics(events);
-    setMetrics(nextMetrics);
     setScore(computeScore(events));
     if (sessionState.sessionId) {
       nextMetrics.forEach((metric) => {
@@ -191,8 +174,8 @@ export default function App() {
       const sessionId = sessionState.sessionId ?? "active";
       const batch: SignalPoint[] = [
         { sessionId, t, type: "intensity", value: mic.rms },
-        { sessionId, t, type: "rhythm", value: signals.rhythm.strength },
-        { sessionId, t, type: "silence", value: signals.silenceActive ? 1 : 0 }
+        { sessionId, t, type: "rhythm",    value: signals.rhythm.strength },
+        { sessionId, t, type: "silence",   value: signals.silenceActive ? 1 : 0 }
       ];
       if (motion.state.active) {
         batch.push({ sessionId, t, type: "motion", value: motion.state.magnitude });
@@ -246,7 +229,7 @@ export default function App() {
     if (!asr.error) return;
     if (selectedModel.tier !== "power") return;
     if (!looksLikeMemoryFailure(asr.error)) return;
-    const lightModel = MODEL_OPTIONS.find((option) => option.tier === "light");
+    const lightModel = MODEL_OPTIONS.find((o) => o.tier === "light");
     if (lightModel && lightModel.id !== modelId) {
       setModelId(lightModel.id);
     }
@@ -264,11 +247,7 @@ export default function App() {
     if (!mic.active) return;
     if (lastRhythm.current === signals.rhythm.active) return;
     lastRhythm.current = signals.rhythm.active;
-    if (signals.rhythm.active) {
-      sessionBus.emit("RHYTHM_START");
-    } else {
-      sessionBus.emit("RHYTHM_STOP");
-    }
+    sessionBus.emit(signals.rhythm.active ? "RHYTHM_START" : "RHYTHM_STOP");
   }, [signals.rhythm.active, mic.active]);
 
   useEffect(() => {
@@ -331,9 +310,7 @@ export default function App() {
     const result = await requestMic();
     if (result === "granted") {
       await mic.start();
-      if (motionEnabled) {
-        motion.start();
-      }
+      if (motionEnabled) motion.start();
       startSession();
     }
   };
@@ -344,9 +321,7 @@ export default function App() {
   };
 
   const handleResume = () => {
-    if (motionEnabled) {
-      motion.start();
-    }
+    if (motionEnabled) motion.start();
     resumeSession();
   };
 
@@ -358,9 +333,7 @@ export default function App() {
 
   const handleDelete = async () => {
     if (!sessionState.sessionId) return;
-    const ok = window.confirm(
-      "Delete this session permanently? This cannot be undone."
-    );
+    const ok = window.confirm("Delete this session permanently? This cannot be undone.");
     if (!ok) return;
     await hardDeleteSession();
     listSessions().then((rows) => setSessions(rows));
@@ -370,9 +343,7 @@ export default function App() {
   const handleExport = async () => {
     const data = await exportSessionData();
     if (!data || !sessionState.sessionId) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json"
-    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -389,240 +360,82 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <div className="logo">Sehx</div>
-        <div className="status">Offline-first shell</div>
       </header>
+
+      <nav className="tab-bar">
+        {(["record", "history", "insights"] as const).map((tab) => (
+          <button
+            key={tab}
+            className={`tab-btn${activeTab === tab ? " active" : ""}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </nav>
+
       <main className="app-main">
-        <SessionControls
-          micState={status.mic}
-          micActive={mic.active}
-          rms={mic.rms}
-          silenceActive={signals.silenceActive}
-          rhythmStrength={signals.rhythm.strength}
-          asrReady={asr.ready}
-          asrError={asr.error}
-          modelCached={model.cached}
-          modelDownloading={model.downloading}
-          modelProgress={model.progress}
-          modelSizeBytes={model.sizeBytes}
-          modelError={model.error}
-          onDownloadModel={model.download}
-          onClearModel={model.clear}
-          modelId={modelId}
-          modelOptions={MODEL_OPTIONS.map((option) => ({
-            id: option.id,
-            label: option.label
-          }))}
-          onModelChange={setModelId}
+        {activeTab === "record" && (
+          <>
+            <RecordView
+              status={sessionState.status}
+              elapsed={formatDuration(elapsedSeconds)}
+              rms={mic.rms}
+              micActive={mic.active}
+              currentPhase={currentPhase}
+              onStart={handleStart}
+              onPause={handlePause}
+              onResume={handleResume}
+              onEnd={handleEnd}
+              error={status.error}
+              speechEnabled={speechEnabled}
+              onToggleSpeech={toggleSpeech}
+              modelCached={model.cached}
+              modelDownloading={model.downloading}
+              modelProgress={model.progress}
+              onDownloadModel={model.download}
+              motionEnabled={motionEnabled}
+              motionSupported={motion.state.supported}
+              onToggleMotion={toggleMotion}
+            />
+            {sessionState.status === "ended" && (
+              <SessionSummary
+                durationSeconds={elapsedSeconds}
+                score={score}
+                events={events}
+                timeline={timeline.timeline}
+                sessionLabel={sessionReview.label}
+                sessionRating={sessionReview.rating}
+                onSessionLabelChange={(v) => setSessionReview({ label: v })}
+                onSessionRatingChange={(v) => setSessionReview({ rating: v })}
+                onDelete={async () => {
+                  await handleDelete();
+                  setActiveTab("history");
+                }}
+                onExport={handleExport}
+              />
+            )}
+          </>
+        )}
+
+        {activeTab === "history" && <HistoryView sessions={sessions} />}
+
+        {activeTab === "insights" && (
+          <InsightsView weeklyTrends={weeklyTrends} monthlyTrends={monthlyTrends} />
+        )}
+
+        <DevPanel
           crossOriginIsolated={window.crossOriginIsolated}
           sharedArrayBuffer={typeof SharedArrayBuffer !== "undefined"}
           secureContext={window.isSecureContext}
           cacheAvailable={typeof caches !== "undefined"}
-          speechEnabled={speechEnabled}
-          onToggleSpeech={toggleSpeech}
-          motionEnabled={motionEnabled}
-          motionSupported={motion.state.supported}
-          motionPermission={motion.state.permission}
-          motionActive={motion.state.active}
-          onToggleMotion={toggleMotion}
-          status={sessionState.status}
-          elapsed={formatDuration(elapsedSeconds)}
-          onStart={handleStart}
-          onPause={handlePause}
-          onResume={handleResume}
-          onEnd={handleEnd}
-          onDeleteSession={handleDelete}
-          onExportSession={handleExport}
-          sessionLabel={sessionReview.label}
-          sessionRating={sessionReview.rating}
-          onSessionLabelChange={(value) => setSessionReview({ label: value })}
-          onSessionRatingChange={(value) => setSessionReview({ rating: value })}
-          error={status.error}
-          events={events}
+          asrReady={asr.ready}
+          asrError={asr.error}
+          modelCached={model.cached}
+          micActive={mic.active}
+          rms={mic.rms}
+          motionPermission={motion.state.permission ?? "unknown"}
         />
-        <div className="timeline-toolbar">
-          <div className="toolbar-title">Zoom</div>
-          <div className="toolbar-actions">
-            {["1m", "5m", "full"].map((level) => (
-              <button
-                key={level}
-                className={`ghost ${timeline.zoom === level ? "active" : ""}`}
-                onClick={() => timeline.setZoom(level as "1m" | "5m" | "full")}
-              >
-                {level}
-              </button>
-            ))}
-          </div>
-        </div>
-        <TimelineView
-          data={timeline.timeline}
-          onSelect={(item) => {
-            setSelectedPrimitive(item);
-            setScrubTime(item.tStart);
-          }}
-        />
-        {timeline.timeline.duration ? (
-          <div className="timeline-inspector">
-            <div className="scrubber-row">
-              <input
-                type="range"
-                min={0}
-                max={timeline.timeline.duration}
-                step={0.1}
-                value={scrubTime}
-                onChange={(event) => setScrubTime(Number(event.target.value))}
-              />
-              <div className="scrub-time">{formatDuration(scrubTime)}</div>
-            </div>
-            <div className="inspect-panel">
-              {selectedPrimitive ? (
-                <>
-                  <div className="detail-title">Selected</div>
-                  <div className="detail-row">
-                    Track: <strong>{selectedPrimitive.track}</strong>
-                  </div>
-                  <div className="detail-row">
-                    Type: <strong>{selectedPrimitive.kind}</strong>
-                  </div>
-                  <div className="detail-row">
-                    Range:{" "}
-                    <strong>
-                      {formatDuration(selectedPrimitive.tStart)}{" "}
-                      {selectedPrimitive.tEnd
-                        ? `→ ${formatDuration(selectedPrimitive.tEnd)}`
-                        : ""}
-                    </strong>
-                  </div>
-                </>
-              ) : activePrimitives.length ? (
-                <>
-                  <div className="detail-title">Active at scrub</div>
-                  {activePrimitives.map((primitive) => (
-                    <div key={primitive.id} className="detail-row">
-                      <strong>{primitive.label ?? primitive.track}</strong>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="session-empty">No events at this time.</div>
-              )}
-            </div>
-          </div>
-        ) : null}
-        <section className="card review-card">
-          <h1>Session review</h1>
-          <div className="review-grid">
-            <div className="review-list">
-              {sessions.length ? (
-                sessions.map((session) => (
-                  <button
-                    key={session.id}
-                    className={`session-item ${selectedSessionId === session.id ? "active" : ""}`}
-                    onClick={() => setSelectedSessionId(session.id)}
-                  >
-                    <div className="session-title">
-                      {new Date(session.createdAt).toLocaleString()}
-                    </div>
-                    <div className="session-item-meta">
-                      {session.endedAt
-                        ? `${Math.max(
-                            0,
-                            Math.round((session.endedAt - session.createdAt - session.totalPausedMs) / 1000)
-                          )}s`
-                        : "in progress"}
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="session-empty">No sessions stored yet.</div>
-              )}
-            </div>
-            <div className="review-detail">
-              {selectedSession?.session ? (
-                <>
-                  <div className="detail-title">Session detail</div>
-                  <div className="detail-row">
-                    Status: <strong>{selectedSession.session.status}</strong>
-                  </div>
-                  <div className="detail-row">
-                    Events: <strong>{selectedSession.events.length}</strong>
-                  </div>
-                  <div className="detail-row">
-                    Metrics: <strong>{selectedSession.metrics.length}</strong>
-                  </div>
-                  <div className="detail-row">
-                    Signals: <strong>{selectedSession.signals.length}</strong>
-                  </div>
-                </>
-              ) : (
-                <div className="session-empty">Select a session to inspect.</div>
-              )}
-            </div>
-          </div>
-        </section>
-        {metrics.length ? (
-          <section className="card metrics-card">
-            <h1>Metrics (v1)</h1>
-            <div className="metrics-grid">
-              {metrics.map((metric) => (
-                <div key={metric.key} className="metric-item">
-                  <div className="metric-key">{metric.key}</div>
-                  <div className="metric-value">{metric.value.toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        {score ? (
-          <section className="card metrics-card">
-            <h1>Score</h1>
-            <div className="score-total">{score.total.toFixed(1)}</div>
-            <div className="metrics-grid">
-              {score.components.map((component) => (
-                <div key={component.key} className="metric-item">
-                  <div className="metric-key">{component.key}</div>
-                  <div className="metric-value">
-                    {(component.score * 100).toFixed(1)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        {(weeklyTrends.length || monthlyTrends.length) ? (
-          <section className="card metrics-card">
-            <h1>Trends</h1>
-            <div className="trend-section">
-              <h2>Weekly</h2>
-              {weeklyTrends.map((series) => (
-                <div key={series.key} className="trend-series">
-                  <div className="metric-key">{series.key}</div>
-                  <div className="trend-points">
-                    {series.points.map((point) => (
-                      <span key={point.period} className="trend-point">
-                        {point.period}: {point.value.toFixed(2)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="trend-section">
-              <h2>Monthly</h2>
-              {monthlyTrends.map((series) => (
-                <div key={series.key} className="trend-series">
-                  <div className="metric-key">{series.key}</div>
-                  <div className="trend-points">
-                    {series.points.map((point) => (
-                      <span key={point.period} className="trend-point">
-                        {point.period}: {point.value.toFixed(2)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </main>
     </div>
   );

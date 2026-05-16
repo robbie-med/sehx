@@ -1,8 +1,5 @@
 type ConsentState = {
-  privacy: boolean;
-  foreground: boolean;
-  permissions: boolean;
-  speechOptIn: boolean;
+  understood: boolean;
 };
 
 type ConsentChecklistProps = {
@@ -10,49 +7,19 @@ type ConsentChecklistProps = {
   onChange: (value: ConsentState) => void;
 };
 
-export default function ConsentChecklist({
-  value,
-  onChange
-}: ConsentChecklistProps) {
-  const update = (key: keyof ConsentState) => {
-    onChange({ ...value, [key]: !value[key] });
-  };
-
+export default function ConsentChecklist({ value, onChange }: ConsentChecklistProps) {
   return (
     <div className="consent-checklist">
       <label className="consent-row">
         <input
           type="checkbox"
-          checked={value.privacy}
-          onChange={() => update("privacy")}
+          checked={value.understood}
+          onChange={() => onChange({ understood: !value.understood })}
         />
         <span>
-          I understand no audio or transcripts are stored. Data stays on-device.
+          I understand this app processes audio locally in real time. No audio or
+          transcripts are stored. I can delete all session data at any time.
         </span>
-      </label>
-      <label className="consent-row">
-        <input
-          type="checkbox"
-          checked={value.foreground}
-          onChange={() => update("foreground")}
-        />
-        <span>Sessions require the screen on with the app open.</span>
-      </label>
-      <label className="consent-row">
-        <input
-          type="checkbox"
-          checked={value.permissions}
-          onChange={() => update("permissions")}
-        />
-        <span>Microphone permission is requested only at session start.</span>
-      </label>
-      <label className="consent-row">
-        <input
-          type="checkbox"
-          checked={value.speechOptIn}
-          onChange={() => update("speechOptIn")}
-        />
-        <span>Speech processing is off by default and can be enabled later.</span>
       </label>
     </div>
   );
